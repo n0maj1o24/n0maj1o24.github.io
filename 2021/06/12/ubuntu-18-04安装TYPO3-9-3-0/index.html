@@ -20,22 +20,22 @@
     var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="最近，研究了一下交叉编译技术。主要涉及的语言包括Go和C。其中Go的交叉编译相对来说比较容易，C的交叉编译在环境配置上有一些难度和繁琐。在研究过程中，踩了不少坑，特此记录。   Go语言的交叉编译比较容易，基本上就是参数上设置正确就OK了。静态编译的时候，可执行文件相对比较大，这在MIPS设备中，会有些不适合。因为MIPS设备存储容量比较小，内存也比较小，如果静态编译出来的文件过大，可能无法下">
+  <meta name="description" content="环境概况本实验环境采用的是Ubuntu 18.04，Apache版本为2.4.29，PHP版本为7.3.PHP版本为7.2的时候出现了未知错误，导致一直安装不成功，无奈切换成PHP7.3 PHP7.3在Ubuntu 18.04上的安装步骤如下： 1234sudo apt-get install software-properties-commonsudo add-apt-repository pp">
 <meta property="og:type" content="article">
-<meta property="og:title" content="ARM、MIPS交叉编译工具试用小记">
-<meta property="og:url" content="https://n0maj1o24.github.io/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/index.html">
+<meta property="og:title" content="ubuntu 18.04安装TYPO3 9.3.0">
+<meta property="og:url" content="https://n0maj1o24.github.io/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/index.html">
 <meta property="og:site_name" content="Technical Memorandum">
-<meta property="og:description" content="最近，研究了一下交叉编译技术。主要涉及的语言包括Go和C。其中Go的交叉编译相对来说比较容易，C的交叉编译在环境配置上有一些难度和繁琐。在研究过程中，踩了不少坑，特此记录。   Go语言的交叉编译比较容易，基本上就是参数上设置正确就OK了。静态编译的时候，可执行文件相对比较大，这在MIPS设备中，会有些不适合。因为MIPS设备存储容量比较小，内存也比较小，如果静态编译出来的文件过大，可能无法下">
+<meta property="og:description" content="环境概况本实验环境采用的是Ubuntu 18.04，Apache版本为2.4.29，PHP版本为7.3.PHP版本为7.2的时候出现了未知错误，导致一直安装不成功，无奈切换成PHP7.3 PHP7.3在Ubuntu 18.04上的安装步骤如下： 1234sudo apt-get install software-properties-commonsudo add-apt-repository pp">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2020-04-19T17:20:52.000Z">
-<meta property="article:modified_time" content="2021-04-22T10:20:50.265Z">
+<meta property="article:published_time" content="2021-06-11T16:57:01.000Z">
+<meta property="article:modified_time" content="2021-06-11T08:59:11.519Z">
 <meta property="article:author" content="n0maj1o24">
-<meta property="article:tag" content="Linux">
-<meta property="article:tag" content="C">
-<meta property="article:tag" content="Go">
+<meta property="article:tag" content="PHP">
+<meta property="article:tag" content="TYPO3">
+<meta property="article:tag" content="Ubuntu">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://n0maj1o24.github.io/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/">
+<link rel="canonical" href="https://n0maj1o24.github.io/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/">
 
 
 <script id="page-configurations">
@@ -48,7 +48,7 @@
   };
 </script>
 
-  <title>ARM、MIPS交叉编译工具试用小记 | Technical Memorandum</title>
+  <title>ubuntu 18.04安装TYPO3 9.3.0 | Technical Memorandum</title>
   
 
 
@@ -196,7 +196,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/avatar.jpeg">
@@ -209,7 +209,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          ARM、MIPS交叉编译工具试用小记
+          ubuntu 18.04安装TYPO3 9.3.0
         </h1>
 
         <div class="post-meta">
@@ -218,23 +218,17 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
+              
 
-              <time title="创建时间：2020-04-19 17:20:52" itemprop="dateCreated datePublished" datetime="2020-04-19T17:20:52Z">2020-04-19</time>
+              <time title="创建时间：2021-06-11 16:57:01 / 修改时间：08:59:11" itemprop="dateCreated datePublished" datetime="2021-06-11T16:57:01Z">2021-06-11</time>
             </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 10:20:50" itemprop="dateModified" datetime="2021-04-22T10:20:50Z">2021-04-22</time>
-              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
               </span>
               <span class="post-meta-item-text">分类于</span>
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                  <a href="/categories/Configuration/" itemprop="url" rel="index"><span itemprop="name">Configuration</span></a>
                 </span>
             </span>
 
@@ -254,8 +248,8 @@
       </span>
       <span class="post-meta-item-text">Valine：</span>
     
-    <a title="valine" href="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/" itemprop="commentCount"></span>
+    <a title="valine" href="/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -270,29 +264,50 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>  最近，研究了一下交叉编译技术。主要涉及的语言包括<code>Go</code>和<code>C</code>。其中<code>Go</code>的交叉编译相对来说比较容易，<code>C</code>的交叉编译在环境配置上有一些难度和繁琐。在研究过程中，踩了不少坑，特此记录。</p>
-<p><code>  Go</code>语言的交叉编译比较容易，基本上就是参数上设置正确就OK了。静态编译的时候，可执行文件相对比较大，这在<code>MIPS</code>设备中，会有些不适合。因为<code>MIPS</code>设备存储容量比较小，内存也比较小，如果静态编译出来的文件过大，可能无法下载到设备中，更有甚者无法加载可执行文件，这种情况基本上就只能靠<code>C</code>语言来进行交叉编译可执行文件了。<code>Go</code>交叉编译的情况，可以参考<a target="_blank" rel="noopener" href="https://github.com/eyasliu/blog/issues/27">链接1</a>所示，我觉得写的不错。对于<code>Go</code>支持的操作系统和具体版本，可以参考<a target="_blank" rel="noopener" href="https://github.com/golang/go/wiki">Github Go wiki</a>。如关于<code>ARM</code>的<a target="_blank" rel="noopener" href="https://github.com/golang/go/wiki/GoArm">链接2</a>，关于<code>MIPS</code>的<a target="_blank" rel="noopener" href="https://github.com/golang/go/wiki/GoMips">链接3</a>.</p>
-<p>  主要来讲<code>C</code>的交叉编译，毕竟坑多，配置繁琐。</p>
-<p>  我使用过的交叉编译工具或者环境如下：<code>dockcross</code>,<code>Buildroot</code>,<code>crosstool-NG</code>.</p>
-<p><code>  dockcross</code>相对来说简单方便，基于<code>docker</code>，能够满足一般需求。可以参考<a target="_blank" rel="noopener" href="https://github.com/dockcross/dockcross">链接4</a>.</p>
-<p>  我这里出现的情况是，<code>dockcross</code>解决不了我面临的现实问题。静态编译的可执行文件在设备上运行的时候，提示<code>kernel old</code>错误。这里的原因是<code>dockcross-arm docker</code>采用的<code>linux</code>内核版本太高，其实动态编译得到的可执行程序是能在设备上执行成功的。<code>glibc</code>向下兼容，所以执行成功了。这是我后续测试发现的。动态编译文件还小，如果能够跑起来，其实动态编译就好了。因为内核版本高了，那就找个内核版本和设备差不多的。然而，<code>dockcross</code>构建的<code>docker</code>镜像里，没有符合我要求的。</p>
-<p>  遇到问题，那就解决问题。找到<a target="_blank" rel="noopener" href="https://buildroot.org/">Buildroot</a>，看着口号是让嵌入式<code>linux</code>环境构建更加容易。我下载了最新版，看了一下说明文档，配置起来果然方便。<code>make menuconfig</code>进行配置，然后<code>make</code>就可以了。<code>make menuconfig</code>选择它支持的<code>kernel</code>版本，有个小坑。虽然配置选项可以选择<code>kernel 2.6.x</code>版本，但是在<code>make</code>的时候，下载<code>kernel</code>的时候会出现404错误。<code>buildroot</code>官方的<a target="_blank" rel="noopener" href="http://sources.buildroot.net/linux/">下载地址</a>已经没有<code>2.6.x</code>版本的内核了，最低版本是<code>3.2.101</code>。如果选择了<code>2.6.x</code>版本的<code>kernel</code>，需要让其到<a target="_blank" rel="noopener" href="https://mirrors.edge.kernel.org/pub/linux/kernel/">cdn.kernel</a>网站上去下载对应文件，主要是参考<code>cdn.kernel</code>网站上，对应<code>kernel</code>文件名，填入<code>URL of custom kernel tarball</code>中。<code>C</code>运行库有<code>uClibc</code>、<code>glibc</code>、<code>musl</code>可以选择。<code>glibc</code>编译出来的静态文件相对较大，<code>uClibc</code>编译出来的静态文件相对较小，优先选择<code>uClibc</code>，<code>musl</code>我暂时还没用到，这里不评价。</p>
-<p><a target="_blank" rel="noopener" href="https://crosstool-ng.github.io/">crosstool-NG</a>本来想用，后来看到<code>Buildroot</code>解决了我的问题，就把它暂时搁置了。看着<code>crosstool-NG</code>配置和<code>Buildroot</code>大同小异，这里占个位置，后续使用到了，再来填坑。</p>
-<p>  其实，最后我还用到了<code>qemu-mips-static</code>来加载<code>uClibc</code>。因为我遇到一个很老的<code>MIPS</code>系统，内核版本是<code>2.4.x</code>，这在<code>dockcross</code>构建的环境里面没有，<code>Buildroot</code>高版本已经不支持<code>kernel2.4.x</code>了。使用高版本的<code>kernel</code>进行构建交叉编译工具，最后编译出来的可执行程序在设备上跑不起来，问题如下：</p>
-<p><code>line 1: syntax error: unexpected “(”</code></p>
-<p>  我琢磨还是内核版本不兼容导致的。最直接的版本就是安装一个内核版本相同的系统，然后进行交叉编译。说干就干。</p>
-<p>  尝试安装<code>ubuntu6.06.1</code>、<code>redhat 9.0</code>这些古老的<code>linux</code>系统结合<code>buildroot-0.9.27</code>来交叉编译，很不幸老旧的<code>linux</code>发行版不支持包更新了，我只能断了这个念头。无意中我在<a target="_blank" rel="noopener" href="https://www.uclibc.org/toolchains.html">uClibc</a>官网发现可以挂载编译好的基于<code>Buildroot-0.9.27</code>的<code>uClibc</code>来进行交叉编译任务。我真是喜出望外，其实是我没仔细看官网，不然前面安装老旧版本的<code>linux</code>工作就可以免了。uClibc官网的下载地址挂了，用这个<a target="_blank" rel="noopener" href="https://cdn.kernel.org/pub/linux/libs/uclibc/">地址</a>下载吧。以<code>root_fs_mips</code>为例，来进行挂载。主要命令如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">bunzip2 root_fs_mips.bz2</span><br><span class="line">mkdir root_fs_mips</span><br><span class="line">sudo su</span><br><span class="line">mount -o loop root_fs_mips.ext2 root_fs_mips</span><br><span class="line">chroot root_fs_mips /bin/bash -</span><br></pre></td></tr></table></figure>
+        <h2 id="环境概况"><a href="#环境概况" class="headerlink" title="环境概况"></a>环境概况</h2><p>本实验环境采用的是Ubuntu 18.04，Apache版本为2.4.29，PHP版本为7.3.PHP版本为7.2的时候出现了未知错误，导致一直安装不成功，无奈切换成PHP7.3</p>
+<p>PHP7.3在Ubuntu 18.04上的安装步骤如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install software-properties-common</span><br><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php7.3 libapache2-mod-php7.3 php7.3-cli php7.3-mysql php7.3-gd php7.3-imagick php7.3-recode php7.3-tidy php7.3-xmlrpc php7.3-common php7.3-curl php7.3-mbstring php7.3-xml php7.3-bcmath php7.3-bz2 php7.3-intl php7.3-json php7.3-readline php7.3-zip</span><br></pre></td></tr></table></figure>
 
-<p>  这里有个小坑，因为本机是<code>linux</code>，在挂载<code>root_fs_mips</code>的时候出现如下错误：</p>
-<p><code>chroot: failed to run command &#39;/bin/bash&#39;: Exec format error</code></p>
-<p>  原因是系统架构不同导致的错误。解决办法就是借助<code>qemu-mips-static</code>。<code>qemu</code>的安装如下</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt install qemu-user-static</span><br></pre></td></tr></table></figure>
+<p>PHP7.3没有安装FPM，所以需要单独安装FPM</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install php7.3-fpm</span><br></pre></td></tr></table></figure>
 
-<p>  最后借助<code>qemu_mips_static</code>挂载<code>root_fs_mips</code>的命令如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /usr/bin/qemu-mips-static root_fs_mips/usr/bin</span><br><span class="line">chroot root_fs_mips qemu-mips-static /bin/bash </span><br></pre></td></tr></table></figure>
+<p>因为我本地安装了PHP7.2和PHP7.3两个版本，为了让Apache采用PHP7.3来解析脚本，需要执行下列命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo a2dismod php7.2</span><br><span class="line">sudo a2enmod php7.3</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
 
-<p>  对于老旧版本的<code>MIPS</code>，这样进行交叉编译待执行程序，就可以解决问题了。</p>
+<p>多版本PHP的切换可以使用一下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo update-alternatives --config php</span><br></pre></td></tr></table></figure>
+
+<p>根据提示进行选择即可。</p>
+<h2 id="TYPO3-9-3-0安装"><a href="#TYPO3-9-3-0安装" class="headerlink" title="TYPO3 9.3.0安装"></a>TYPO3 9.3.0安装</h2><p>将下载的TYPO3.CMS-9.3.0.tar.gz解压缩放到/var/www/htdocs/目录下，我这里解压缩之后的文件夹命名为typo3，进入typo3,执行<code>composer</code>安装所需的包。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo composer install --no-dev</span><br></pre></td></tr></table></figure>
+
+<p>修改Apache默认路径的执行权限：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chown -R www-data:www-data /var/www/htdocs/typo3/</span><br><span class="line">sudo chmod -R 755 /var/www/htdocs/typo3/</span><br></pre></td></tr></table></figure>
+
+<p>配置Apache：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo code /etc/apache2/sites-available/typo3.conf --user-data-dir</span><br></pre></td></tr></table></figure>
+
+<p>内容修改如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">VirtualHost</span> *<span class="attr">:80</span>&gt;</span></span><br><span class="line">ServerName typo3.example.com</span><br><span class="line">DocumentRoot /var/www/htdocs</span><br><span class="line"><span class="tag">&lt;<span class="name">Directory</span> /<span class="attr">var</span>/<span class="attr">www</span>/<span class="attr">htdocs</span>/<span class="attr">typo3</span>/&gt;</span></span><br><span class="line">Options +FollowSymlinks</span><br><span class="line">AllowOverride All</span><br><span class="line">Require all granted</span><br><span class="line"><span class="tag">&lt;/<span class="name">Directory</span>&gt;</span></span><br><span class="line">ErrorLog /var/log/apache2/typo3.example.com-error_log</span><br><span class="line">CustomLog /var/log/apache2/typo3.example.com-access_log common</span><br><span class="line"><span class="tag">&lt;/<span class="name">VirtualHost</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>继续执行如下命令，使得typo3.conf生效及加载必要的模块：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo a2dissite 000-default.conf</span><br><span class="line">sudo a2ensite typo3.conf</span><br><span class="line">sudo a2enmod rewrite</span><br><span class="line">sudo systemctl restart apache2</span><br></pre></td></tr></table></figure>
+
+<p>安装ImageMagick/GraphicsMagick，推荐ImageMagick：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install imagemagick</span><br></pre></td></tr></table></figure>
+
+<p>TYPO3安装的时候，需要修改php.ini中的几个参数，到目录/etc/php/7.3/fpm/php.ini下修改即可。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">max_execution_time = 360</span><br><span class="line">max_input_vars = 1500</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置xdebug-ini"><a href="#配置xdebug-ini" class="headerlink" title="配置xdebug.ini"></a>配置xdebug.ini</h2><p>xdebug.ini文件路径为/etc/php/7.3/mods-available/xdebug.ini</p>
+<p>具体配置信息如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">zend_extension=xdebug.so</span><br><span class="line">xdebug.profiler_output_dir=&quot;/tmp/log&quot;</span><br><span class="line">xdebug.trace_output_dir=&quot;/tmp/log&quot;</span><br><span class="line">xdebug.remote_enable  = true</span><br><span class="line">xdebug.idekey = PHPSTORM</span><br><span class="line">xdebug.remote_host   = 127.0.0.1   </span><br><span class="line">xdebug.remote_port   = 9000  </span><br><span class="line">xdebug.profiler_enable  = on</span><br><span class="line">xdebug.auto_trace   = On</span><br><span class="line">xdebug.show_exception_trace = On</span><br><span class="line">xdebug.remote_autostart  = On</span><br><span class="line">xdebug.collect_vars   = On</span><br><span class="line">xdebug.collect_return  = On</span><br><span class="line">xdebug.remote_handler  =dbgp</span><br><span class="line">xdebug.max_nesting_level = 10000</span><br></pre></td></tr></table></figure>
+
+<p>执行如下命令，使得配置生效：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart php7.3-fpm</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
+
+<p>最后，访问typo3.example.com，根据提示进行TYPO3 9.3.0安装即可。</p>
+<p>参考文章<a target="_blank" rel="noopener" href="https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/">https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/</a></p>
 
     </div>
 
@@ -308,7 +323,7 @@
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="https://n0maj1o24.github.io/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/" title="ARM、MIPS交叉编译工具试用小记">https://n0maj1o24.github.io/2020/04/20/ARM、MIPS交叉编译工具试用小记/</a>
+    <a href="https://n0maj1o24.github.io/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/" title="ubuntu 18.04安装TYPO3 9.3.0">https://n0maj1o24.github.io/2021/06/12/ubuntu-18-04安装TYPO3-9-3-0/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
@@ -319,9 +334,9 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/Linux/" rel="tag"># Linux</a>
-              <a href="/tags/C/" rel="tag"># C</a>
-              <a href="/tags/Go/" rel="tag"># Go</a>
+              <a href="/tags/PHP/" rel="tag"># PHP</a>
+              <a href="/tags/TYPO3/" rel="tag"># TYPO3</a>
+              <a href="/tags/Ubuntu/" rel="tag"># Ubuntu</a>
           </div>
 
         
@@ -330,13 +345,10 @@
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2019/08/27/On-The-Way/" rel="prev" title="On The Way">
-      <i class="fa fa-chevron-left"></i> On The Way
+    <a href="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/" rel="prev" title="Laravel RCE1-7 POP链分析">
+      <i class="fa fa-chevron-left"></i> Laravel RCE1-7 POP链分析
     </a></div>
-      <div class="post-nav-item">
-    <a href="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/" rel="next" title="Kali安装Parallels Desktop Tools失败问题解决">
-      Kali安装Parallels Desktop Tools失败问题解决 <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -396,6 +408,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E6%A6%82%E5%86%B5"><span class="nav-number">1.</span> <span class="nav-text">环境概况</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TYPO3-9-3-0%E5%AE%89%E8%A3%85"><span class="nav-number">2.</span> <span class="nav-text">TYPO3 9.3.0安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%85%8D%E7%BD%AExdebug-ini"><span class="nav-number">3.</span> <span class="nav-text">配置xdebug.ini</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

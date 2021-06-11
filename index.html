@@ -188,6 +188,131 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/" class="post-title-link" itemprop="url">ubuntu 18.04安装TYPO3 9.3.0</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-06-11 16:57:01 / 修改时间：08:59:11" itemprop="dateCreated datePublished" datetime="2021-06-11T16:57:01Z">2021-06-11</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Configuration/" itemprop="url" rel="index"><span itemprop="name">Configuration</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="环境概况"><a href="#环境概况" class="headerlink" title="环境概况"></a>环境概况</h2><p>本实验环境采用的是Ubuntu 18.04，Apache版本为2.4.29，PHP版本为7.3.PHP版本为7.2的时候出现了未知错误，导致一直安装不成功，无奈切换成PHP7.3</p>
+<p>PHP7.3在Ubuntu 18.04上的安装步骤如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install software-properties-common</span><br><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php7.3 libapache2-mod-php7.3 php7.3-cli php7.3-mysql php7.3-gd php7.3-imagick php7.3-recode php7.3-tidy php7.3-xmlrpc php7.3-common php7.3-curl php7.3-mbstring php7.3-xml php7.3-bcmath php7.3-bz2 php7.3-intl php7.3-json php7.3-readline php7.3-zip</span><br></pre></td></tr></table></figure>
+
+<p>PHP7.3没有安装FPM，所以需要单独安装FPM</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install php7.3-fpm</span><br></pre></td></tr></table></figure>
+
+<p>因为我本地安装了PHP7.2和PHP7.3两个版本，为了让Apache采用PHP7.3来解析脚本，需要执行下列命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo a2dismod php7.2</span><br><span class="line">sudo a2enmod php7.3</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
+
+<p>多版本PHP的切换可以使用一下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo update-alternatives --config php</span><br></pre></td></tr></table></figure>
+
+<p>根据提示进行选择即可。</p>
+<h2 id="TYPO3-9-3-0安装"><a href="#TYPO3-9-3-0安装" class="headerlink" title="TYPO3 9.3.0安装"></a>TYPO3 9.3.0安装</h2><p>将下载的TYPO3.CMS-9.3.0.tar.gz解压缩放到/var/www/htdocs/目录下，我这里解压缩之后的文件夹命名为typo3，进入typo3,执行<code>composer</code>安装所需的包。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo composer install --no-dev</span><br></pre></td></tr></table></figure>
+
+<p>修改Apache默认路径的执行权限：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chown -R www-data:www-data /var/www/htdocs/typo3/</span><br><span class="line">sudo chmod -R 755 /var/www/htdocs/typo3/</span><br></pre></td></tr></table></figure>
+
+<p>配置Apache：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo code /etc/apache2/sites-available/typo3.conf --user-data-dir</span><br></pre></td></tr></table></figure>
+
+<p>内容修改如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">VirtualHost</span> *<span class="attr">:80</span>&gt;</span></span><br><span class="line">ServerName typo3.example.com</span><br><span class="line">DocumentRoot /var/www/htdocs</span><br><span class="line"><span class="tag">&lt;<span class="name">Directory</span> /<span class="attr">var</span>/<span class="attr">www</span>/<span class="attr">htdocs</span>/<span class="attr">typo3</span>/&gt;</span></span><br><span class="line">Options +FollowSymlinks</span><br><span class="line">AllowOverride All</span><br><span class="line">Require all granted</span><br><span class="line"><span class="tag">&lt;/<span class="name">Directory</span>&gt;</span></span><br><span class="line">ErrorLog /var/log/apache2/typo3.example.com-error_log</span><br><span class="line">CustomLog /var/log/apache2/typo3.example.com-access_log common</span><br><span class="line"><span class="tag">&lt;/<span class="name">VirtualHost</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>继续执行如下命令，使得typo3.conf生效及加载必要的模块：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo a2dissite 000-default.conf</span><br><span class="line">sudo a2ensite typo3.conf</span><br><span class="line">sudo a2enmod rewrite</span><br><span class="line">sudo systemctl restart apache2</span><br></pre></td></tr></table></figure>
+
+<p>安装ImageMagick/GraphicsMagick，推荐ImageMagick：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install imagemagick</span><br></pre></td></tr></table></figure>
+
+<p>TYPO3安装的时候，需要修改php.ini中的几个参数，到目录/etc/php/7.3/fpm/php.ini下修改即可。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">max_execution_time = 360</span><br><span class="line">max_input_vars = 1500</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置xdebug-ini"><a href="#配置xdebug-ini" class="headerlink" title="配置xdebug.ini"></a>配置xdebug.ini</h2><p>xdebug.ini文件路径为/etc/php/7.3/mods-available/xdebug.ini</p>
+<p>具体配置信息如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">zend_extension=xdebug.so</span><br><span class="line">xdebug.profiler_output_dir=&quot;/tmp/log&quot;</span><br><span class="line">xdebug.trace_output_dir=&quot;/tmp/log&quot;</span><br><span class="line">xdebug.remote_enable  = true</span><br><span class="line">xdebug.idekey = PHPSTORM</span><br><span class="line">xdebug.remote_host   = 127.0.0.1   </span><br><span class="line">xdebug.remote_port   = 9000  </span><br><span class="line">xdebug.profiler_enable  = on</span><br><span class="line">xdebug.auto_trace   = On</span><br><span class="line">xdebug.show_exception_trace = On</span><br><span class="line">xdebug.remote_autostart  = On</span><br><span class="line">xdebug.collect_vars   = On</span><br><span class="line">xdebug.collect_return  = On</span><br><span class="line">xdebug.remote_handler  =dbgp</span><br><span class="line">xdebug.max_nesting_level = 10000</span><br></pre></td></tr></table></figure>
+
+<p>执行如下命令，使得配置生效：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart php7.3-fpm</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
+
+<p>最后，访问typo3.example.com，根据提示进行TYPO3 9.3.0安装即可。</p>
+<p>参考文章<a target="_blank" rel="noopener" href="https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/">https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1386,112 +1511,11 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2017/02/11/Java%E9%80%92%E5%BD%92%E8%A7%A3%E5%8E%8B%E7%BC%A9/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="n0maj1o24">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Technical Memorandum">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2017/02/11/Java%E9%80%92%E5%BD%92%E8%A7%A3%E5%8E%8B%E7%BC%A9/" class="post-title-link" itemprop="url">Java递归解压缩</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2017-02-11 12:36:22" itemprop="dateCreated datePublished" datetime="2017-02-11T12:36:22Z">2017-02-11</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-11 04:44:42" itemprop="dateModified" datetime="2021-06-11T04:44:42Z">2021-06-11</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Programming/" itemprop="url" rel="index"><span itemprop="name">Programming</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2017/02/11/Java%E9%80%92%E5%BD%92%E8%A7%A3%E5%8E%8B%E7%BC%A9/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2017/02/11/Java%E9%80%92%E5%BD%92%E8%A7%A3%E5%8E%8B%E7%BC%A9/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>做邮件分析的时候，因为前台上传的是邮件的压缩包，在后台处理的时候需要先对压缩包进行解压缩，然后再对邮件进行提取操作。</p>
-<p>因为压缩包的扩展名名字可是rar、7z、zip。所以需要分情况进行解压缩。而且压缩包里面可能还有压缩包，需要递归解压缩。</p>
-<p>对于zip文件当时用的是zip4j这个jar包，rar、7z文件用的是zip4j这个jar包。maven导入外部jar包的配置文件如下片段：</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>net.lingala.zip4j<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>zip4j<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>1.3.2<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>net.sf.sevenzipjbinding<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>sevenzipjbinding-all-platforms<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">version</span>&gt;</span>9.20-2.00beta<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<p> 对于rar、7z格式文件解压缩的函数如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">rar7zdecompress</span><span class="params">(String path,String destination)</span> </span>&#123;</span><br><span class="line">        String filter = <span class="keyword">null</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">new</span> SevenExtract(path, destination, <span class="keyword">false</span>, filter).extract();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (SevenExtract.ExtractionException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>对于zip格式文件解压缩的函数如下：（对于文件名可能是繁体中文、其他编码格式做了一些处理，不然解压缩会出错，当时设置了压缩文件初始密码，需要先解密）:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">zipdecompress</span><span class="params">(String path,String destination)</span> </span>&#123;</span><br><span class="line">        String password = <span class="string">&quot;password&quot;</span>;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            ZipFile zipFile = <span class="keyword">new</span> ZipFile(path);</span><br><span class="line">            UnzipParameters param = <span class="keyword">new</span> UnzipParameters();</span><br><span class="line">            zipFile.setFileNameCharset(<span class="string">&quot;ISO8859-1&quot;</span>);</span><br><span class="line"><span class="comment">//                        zipFile.setFileNameCharset(&quot;UTF-8&quot;);</span></span><br><span class="line"><span class="comment">//                        zipFile.setFileNameCharset(&quot;GBK&quot;);</span></span><br><span class="line">            <span class="keyword">if</span> (!zipFile.isValidZipFile())</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> ZipException(<span class="string">&quot;ZipFile Format Invalid!&quot;</span>);</span><br><span class="line">            <span class="keyword">if</span> (zipFile.isEncrypted()) &#123;</span><br><span class="line">                zipFile.setPassword(password);</span><br><span class="line">            &#125;</span><br><span class="line"><span class="comment">//                        zipFile.extractAll(destination);</span></span><br><span class="line">            List list = zipFile.getFileHeaders();</span><br><span class="line">            <span class="keyword">for</span> (Iterator iterator = list.iterator(); iterator.hasNext(); ) &#123;</span><br><span class="line">                FileHeader fh = (FileHeader) iterator.next();</span><br><span class="line">                <span class="keyword">byte</span>[] b = fh.getFileName().getBytes(<span class="string">&quot;ISO8859-1&quot;</span>);</span><br><span class="line">                String fname = <span class="keyword">null</span>;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    fname = <span class="keyword">new</span> String(b, <span class="string">&quot;UTF-8&quot;</span>);</span><br><span class="line">                    <span class="keyword">if</span> (fname.getBytes(<span class="string">&quot;UTF-8&quot;</span>).length != b.length) &#123;</span><br><span class="line">                        fname = <span class="keyword">new</span> String(b, <span class="string">&quot;GBK&quot;</span>);<span class="comment">//most possible charset</span></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125; <span class="keyword">catch</span> (Throwable e) &#123;</span><br><span class="line">                    <span class="comment">//try other charset or ...</span></span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">                zipFile.extractFile(fh, destination, param, fname);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//System.out.println(&quot;Total File count: &quot;+count);</span></span><br><span class="line">        &#125; <span class="keyword">catch</span> (ZipException e) &#123;</span><br><span class="line">            <span class="comment">// todo record compress exception information</span></span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p> 在解压缩完成之后，会把压缩文件删除掉。简单的删除函数：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span>  <span class="keyword">void</span> <span class="title">deleteFile</span><span class="params">(Path path)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span>&#123;</span><br><span class="line">            Files.delete(path);</span><br><span class="line">        &#125;<span class="keyword">catch</span> (Exception e)</span><br><span class="line">        &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-<p>递归解压缩的函数代码如下，这里统计了共解压得到多少封邮件，用于后续的前台进度展示（增加了对自定义后缀文件的解压缩，实际上就是zip文件）：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span>  <span class="keyword">long</span> <span class="title">traverseFolder</span><span class="params">(String path, String destination, String originalFilename)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">long</span> count = <span class="number">0</span>;</span><br><span class="line">        <span class="keyword">if</span> (FilenameUtils.getExtension(originalFilename).compareToIgnoreCase(<span class="string">&quot;zip&quot;</span>) == <span class="number">0</span>) &#123;</span><br><span class="line">            zipdecompress(path, destination);</span><br><span class="line">            count = count + traverseFolder(destination, destination,<span class="string">&quot;&quot;</span>);</span><br><span class="line"><span class="comment">//            count = count+traverseFolder(destination + File.separator + FilenameUtils.getBaseName(path), destination + File.separator + FilenameUtils.getBaseName(path));</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (FilenameUtils.getExtension(originalFilename).compareToIgnoreCase(<span class="string">&quot;7z&quot;</span>) == <span class="number">0</span> ||</span><br><span class="line">                FilenameUtils.getExtension(path).compareToIgnoreCase(<span class="string">&quot;rar&quot;</span>) == <span class="number">0</span></span><br><span class="line">                ) &#123;</span><br><span class="line">            rar7zdecompress(path,destination);</span><br><span class="line">            count = count+traverseFolder(destination,destination,<span class="string">&quot;&quot;</span>);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            Path dir = Paths.get(path);</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                DirectoryStream&lt;Path&gt; directorySteam = Files.newDirectoryStream(dir);</span><br><span class="line">                <span class="keyword">for</span> (Path filePath : directorySteam) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (Files.isDirectory(filePath)) &#123;</span><br><span class="line">                        count = count + traverseFolder(destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),</span><br><span class="line">                                destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),<span class="string">&quot;&quot;</span>);</span><br><span class="line">                    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                        <span class="keyword">if</span> (FilenameUtils.getExtension(filePath.toString()).compareToIgnoreCase(<span class="string">&quot;zip&quot;</span>) == <span class="number">0</span>) &#123;</span><br><span class="line">                            zipdecompress(filePath.toString(), destination + File.separator + FilenameUtils.getBaseName(filePath.toString()));</span><br><span class="line">                            deleteFile(filePath);</span><br><span class="line">                            count = count + traverseFolder(destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),</span><br><span class="line">                                    destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),<span class="string">&quot;&quot;</span>);</span><br><span class="line">                        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (FilenameUtils.getExtension(filePath.toString()).compareToIgnoreCase(<span class="string">&quot;7z&quot;</span>) == <span class="number">0</span> ||</span><br><span class="line">                                FilenameUtils.getExtension(filePath.toString()).compareToIgnoreCase(<span class="string">&quot;rar&quot;</span>) == <span class="number">0</span></span><br><span class="line">                                ) &#123;</span><br><span class="line">                            rar7zdecompress(filePath.toString(), destination + File.separator + FilenameUtils.getBaseName(filePath.toString()));</span><br><span class="line">                            deleteFile(filePath);</span><br><span class="line">                            count = count+traverseFolder(destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),</span><br><span class="line">                                    destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),<span class="string">&quot;&quot;</span>);</span><br><span class="line">                        &#125; <span class="keyword">else</span> <span class="keyword">if</span>(FilenameUtils.getExtension(filePath.toString()).compareToIgnoreCase(<span class="string">&quot;pzt&quot;</span>)==<span class="number">0</span>)&#123;</span><br><span class="line">                            zipdecompress(filePath.toString(), destination + File.separator + FilenameUtils.getBaseName(filePath.toString()));</span><br><span class="line">                            deleteFile(Paths.get(filePath.toString()));</span><br><span class="line">                            <span class="comment">//只处理json文件，所有计数加1即可</span></span><br><span class="line"><span class="comment">//                            count = count + traverseFolder(destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),</span></span><br><span class="line"><span class="comment">//                                    destination + File.separator + FilenameUtils.getBaseName(filePath.toString()),&quot;&quot;);</span></span><br><span class="line">                            count++;</span><br><span class="line">                        &#125;<span class="keyword">else</span> <span class="keyword">if</span>(Files.isRegularFile(filePath))  &#123;</span><br><span class="line">                            count++;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> count;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
-
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
+  <nav class="pagination">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+  </nav>
 
 
 
@@ -1558,7 +1582,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-count">11</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
