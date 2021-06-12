@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
 <meta name="theme-color" content="#222">
-<meta name="generator" content="Hexo 5.4.0">
+<meta name="generator" content="Hexo 4.2.1">
   <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
@@ -275,7 +275,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <p>这个漏洞的原因在于对phar文件的过滤不严，导致可以远程代码执行。这里涉及到phar的反序列化，具体参见 <a target="_blank" rel="noopener" href="https://www.twitter.com/@_s_n_t">Sam Thomas</a> 关于[phar unserialize][<a target="_blank" rel="noopener" href="https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]%E7%9A%84%E6%96%87%E7%AB%A0%E3%80%82">https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]的文章。</a></p>
+        <p>这个漏洞的原因在于对phar文件的过滤不严，导致可以远程代码执行。这里涉及到phar的反序列化，具体参见 <a href="https://www.twitter.com/@_s_n_t" target="_blank" rel="noopener">Sam Thomas</a> 关于[phar unserialize][<a href="https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]%E7%9A%84%E6%96%87%E7%AB%A0%E3%80%82" target="_blank" rel="noopener">https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]的文章。</a></p>
 <p>本地搭建了两个基于Ubuntu 18.04.2 LTS的测试环境，TYPO3 8.7.16+PHP PHP 7.0.33和TYPO3 9.3.0+7.3.7。该漏洞的触发需要一个有效的后台用户。</p>
 <p>这里有一个问题需要知晓，<code>assert</code>函数在PHP7.2之后的定义与之前版本略有不同。</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">assert ( <span class="keyword">mixed</span> <span class="variable">$assertion</span> [, <span class="keyword">string</span> <span class="variable">$description</span> ] ) : <span class="keyword">bool</span></span><br></pre></td></tr></table></figure>
