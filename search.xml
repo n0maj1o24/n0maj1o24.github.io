@@ -296,7 +296,7 @@
 <h3 id="3-phpstorm配置Lavarel-artisan调试"><a href="#3-phpstorm配置Lavarel-artisan调试" class="headerlink" title="3.phpstorm配置Lavarel artisan调试"></a>3.phpstorm配置Lavarel artisan调试</h3><p>打开 PhpStorm 的配置功能，搜索 Debug 打开标签页，修改 xDebug port 为 9001</p>
 <p><strong>Tips</strong>: 9001 是可以自由修改的，但需要和 php.ini 配置的 xdebug.remote_port 保持一致</p>
 <p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png" alt="label"></p>
-<p>![label](./Laravel-RCE1-7-POP链分析/phpstorm configuration.png)</p>
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm%20configuration.png" alt="label"></p>
 <h3 id="4-Lavarel版本"><a href="#4-Lavarel版本" class="headerlink" title="4.Lavarel版本"></a>4.Lavarel版本</h3><p><code>Laravel5.4.x</code>、<code>Laravel5.5.x</code>的PHP版本要求是<code>&gt;=7.0.0</code>，Laravel5.6.x、Laravel5.7.x、Laravel5.8.x的PHP版本要求是<code>7.1.3&lt;=版本号&lt;8.0.0</code>。</p>
 <h2 id="RCE1"><a href="#RCE1" class="headerlink" title="RCE1"></a>RCE1</h2><p>​        本文分析RCE1的时候，Laravel版本采用的是5.4.30，采用composer安装。</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">composer create-project --prefer-dist laravel/laravel laravel5.4.30 "5.4.*"</span><br><span class="line">cd laravel5.4.30\</span><br><span class="line">composer install</span><br><span class="line">php artisan cache:clear</span><br><span class="line">php artisan make:auth</span><br><span class="line">php artisan migrate</span><br></pre></td></tr></table></figure>
