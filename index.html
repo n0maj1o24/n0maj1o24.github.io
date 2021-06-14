@@ -1075,7 +1075,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-14 14:55:37" itemprop="dateModified" datetime="2021-06-14T14:55:37Z">2021-06-14</time>
+                <time title="修改时间：2021-06-14 15:13:36" itemprop="dateModified" datetime="2021-06-14T15:13:36Z">2021-06-14</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -1126,8 +1126,8 @@
 </blockquote>
 <p>也就是说，如果使用了<code>yaml</code>标志<code>!php/object</code>，那么这个内容会通过<code>unserialize()</code>进行处理，设置<code>yaml.decode_php</code>则可以禁止，这就是为什么补丁增加了这行代码。</p>
 <p>看一下调用<code>decode()</code>方法的地方，<code>core/lib/Drupal/Component/Serialization/Yaml.php</code>：</p>
-<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal02.png" alt="label">)在<code>Yaml</code>类的<code>decode()</code>方法调用了<code>static::getSerializer()</code>方法，跟入</p>
-<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal3.png" alt="label">)可以看到加载了<code>yaml</code>扩展后就会进入<code>YamlPecl</code>类，进而调用<code>Yaml::decode()</code>方法，搜索调用<code>Yaml::decode</code>并且参数能被控制的地方，在<code>core/modules/config/src/Form/ConfigSingleImportForm.php</code>的<code>validateForm()</code>方法：</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal02.png" alt="label">        在<code>Yaml</code>类的<code>decode()</code>方法调用了<code>static::getSerializer()</code>方法，跟入</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal3.png" alt="label">        可以看到加载了<code>yaml</code>扩展后就会进入<code>YamlPecl</code>类，进而调用<code>Yaml::decode()</code>方法，搜索调用<code>Yaml::decode</code>并且参数能被控制的地方，在<code>core/modules/config/src/Form/ConfigSingleImportForm.php</code>的<code>validateForm()</code>方法：</p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$data = Yaml::decode($form_state-&gt;getValue(<span class="string">'import'</span>));</span><br></pre></td></tr></table></figure>
 
 <p><code>validateForm()</code>的调用处在<code>http://172.16.26.132/drupal/admin/config/development/configuration/single/import</code>，<code>decode()</code>的参数直接从表单获取，于是通过<code>import</code>将恶意参数传递进去。</p>
