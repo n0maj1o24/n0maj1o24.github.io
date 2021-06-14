@@ -27,19 +27,18 @@
 <meta property="og:site_name" content="Technical Memorandum">
 <meta property="og:description" content="环境搭建本地Win10+phpstudy+phpstorm+xdebug。涉及到几个点： 1.php、composer加入环境变量将phpstudy里面的php执行路径加入环境变量，phpstudy自带的composer版本比较低，可以到composer官网下载最新版。 2.xdebug配置​        配置文件如下 123456789101112zend_extension &#x3D; E:\php">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png">
-<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm%20configuration.png">
-<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/laravel5.4.30.png">
-<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array1.png">
-<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array2.png">
-<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/system.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/laravel5.4.30.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array1.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array2.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/system.png">
 <meta property="article:published_time" content="2021-06-07T21:31:13.000Z">
-<meta property="article:modified_time" content="2021-06-07T13:48:00.273Z">
+<meta property="article:modified_time" content="2021-06-14T15:01:43.977Z">
 <meta property="article:author" content="n0maj1o24">
 <meta property="article:tag" content="PHP">
 <meta property="article:tag" content="Laravel">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png">
+<meta name="twitter:image" content="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png">
 
 <link rel="canonical" href="https://n0maj1o24.github.io/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/">
 
@@ -224,10 +223,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2021-06-07 21:31:13 / 修改时间：13:48:00" itemprop="dateCreated datePublished" datetime="2021-06-07T21:31:13Z">2021-06-07</time>
+              <time title="创建时间：2021-06-07 21:31:13" itemprop="dateCreated datePublished" datetime="2021-06-07T21:31:13Z">2021-06-07</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-14 15:01:43" itemprop="dateModified" datetime="2021-06-14T15:01:43Z">2021-06-14</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -277,10 +282,8 @@
 
 <h3 id="3-phpstorm配置Lavarel-artisan调试"><a href="#3-phpstorm配置Lavarel-artisan调试" class="headerlink" title="3.phpstorm配置Lavarel artisan调试"></a>3.phpstorm配置Lavarel artisan调试</h3><p>打开 PhpStorm 的配置功能，搜索 Debug 打开标签页，修改 xDebug port 为 9001</p>
 <p><strong>Tips</strong>: 9001 是可以自由修改的，但需要和 php.ini 配置的 xdebug.remote_port 保持一致</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png" class>
-
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm%20configuration.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png" alt="label"></p>
+<p>![label](./Laravel-RCE1-7-POP链分析/phpstorm configuration.png)</p>
 <h3 id="4-Lavarel版本"><a href="#4-Lavarel版本" class="headerlink" title="4.Lavarel版本"></a>4.Lavarel版本</h3><p><code>Laravel5.4.x</code>、<code>Laravel5.5.x</code>的PHP版本要求是<code>&gt;=7.0.0</code>，Laravel5.6.x、Laravel5.7.x、Laravel5.8.x的PHP版本要求是<code>7.1.3&lt;=版本号&lt;8.0.0</code>。</p>
 <h2 id="RCE1"><a href="#RCE1" class="headerlink" title="RCE1"></a>RCE1</h2><p>​        本文分析RCE1的时候，Laravel版本采用的是5.4.30，采用composer安装。</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">composer create-project --prefer-dist laravel/laravel laravel5.4.30 "5.4.*"</span><br><span class="line">cd laravel5.4.30\</span><br><span class="line">composer install</span><br><span class="line">php artisan cache:clear</span><br><span class="line">php artisan make:auth</span><br><span class="line">php artisan migrate</span><br></pre></td></tr></table></figure>
@@ -303,8 +306,7 @@
 
 <p>​        本地启动：<code>php artisan serve --host=0.0.0.0</code></p>
 <p>​        访问：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/laravel5.4.30.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/laravel5.4.30.png" alt="label"></p>
 <h3 id="入口类"><a href="#入口类" class="headerlink" title="入口类"></a>入口类</h3><p><code>vendor/laravel/framework/src/Illuminate/Broadcasting/PendingBroadcast.php/PendingBroadcast</code></p>
 <h3 id="RCE调用类"><a href="#RCE调用类" class="headerlink" title="RCE调用类"></a>RCE调用类</h3><p><code>vendor/fzaninotto/faker/src/Faker/Generator.php/Generator</code></p>
 <p>从<code>__destruct</code>入手，<code>PendingBroadcast::__destruct()</code>第50-59行：</p>
@@ -337,12 +339,9 @@
 
 <p><strong>注：</strong>比较诡异的一点，这个payload我用在PHP7.3.9+Lavarel8.5.35的测试环境时，也能够执行成功。按理说PHP版本大于7.0.9，CVE-2016-7124无法触发。</p>
 <p>这里有个需要注意的点，我们来看一下<a href="https://www.php.net/manual/zh/function.call-user-func-array.php" target="_blank" rel="noopener">call_user_func_array</a>函数的定义：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array1.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array1.png" alt="label"></p>
 <p>注意函数的第一个参数需要是<code>callable</code>类型的，该类型的解释如下：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array2.png" class>
-
-<p>也就是说，在编写exp的时候，不能把<code>eval</code>传递给<code>call_user_func_array</code>函数，当做该函数的第一个参数的值。因为<code>eval</code>被排除在<code>Callback</code>类型之外了，传递进去会产生错误。</p>
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array2.png" alt="label">也就是说，在编写exp的时候，不能把<code>eval</code>传递给<code>call_user_func_array</code>函数，当做该函数的第一个参数的值。因为<code>eval</code>被排除在<code>Callback</code>类型之外了，传递进去会产生错误。</p>
 <h3 id="EXP2"><a href="#EXP2" class="headerlink" title="EXP2"></a>EXP2</h3><p><strong>本exp所在测试环境为PHP7.3.9+Laravel5.8.35。</strong></p>
 <p>EXP1中，如果靶机禁用了像system这种的危险函数，我们需要使用双参数的函数例如file_put_contents写shell，或者希望执行任意函数，那么上面的payload就没办法了。<code>call_user_func_array</code> 第一个参数是完全可控的，这意味着我们可以调用任意类对象的任意方法，那么我们找一个有危险函数的类，并且参数可控就好了。搜索寻找<code>PhpOption/LazyOption</code> 类中的option函数的call_user_func_array函数中间两个参数都是完全可控的，非常完美的函数。</p>
 <p><code>vendor\phpoption\phpoption\src\PhpOption\LazyOption.php</code>第153-170行：</p>
@@ -367,8 +366,7 @@
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Get all of the listeners for a given event name.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $eventName</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> array</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getListeners</span><span class="params">($eventName)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $listeners = <span class="keyword">$this</span>-&gt;listeners[$eventName] ?? [];</span><br><span class="line"></span><br><span class="line">    $listeners = array_merge(</span><br><span class="line">        $listeners, <span class="keyword">$this</span>-&gt;getWildcardListeners($eventName)</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> class_exists($eventName, <span class="keyword">false</span>)</span><br><span class="line">                ? <span class="keyword">$this</span>-&gt;addInterfaceListeners($eventName, $listeners)</span><br><span class="line">                : $listeners;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>可以发现我们可以控制的参数是<code>$this-&gt;listeners[]</code>数组，并且这里的<code>$eventName</code>就是<code>Illuminate\Broadcasting\PendingBroadcast</code>类的<code>$this-&gt;event</code>为我们执行命令的参数，所以<code>class_exists($eventName, false)</code>为false，直接返回<code>$listeners</code>。然后返回<code>dispatch</code>函数进行foreach操作，这里我们已经可以控制<code>$this-&gt;getListeners($event)</code>的返回值，所以就可以控制<code>$listener</code>。我们来看一下<code>system</code>函数的定义：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/system.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/system.png" alt="label"></p>
 <figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="keyword">$this</span>-&gt;getListeners($event) <span class="keyword">as</span> $listener) &#123;</span><br><span class="line">           $response = $listener($event, $payload);</span><br></pre></td></tr></table></figure>
 
 <p>我们可以知道，执行system命令，就可以不管<code>$payload</code>变量，并且system函数支持2个参数。</p>

