@@ -577,6 +577,10 @@
 <figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">SetHandler application/x-httpd-php</span><br></pre></td></tr></table></figure>
 
 <p>那么上传的任意文件都会被当作<code>php</code>脚本来执行。这样就可以绕过目录<code>php</code>代码执行的限制。</p>
+<p>或者指定解析某种类型后缀的文件：</p>
+<figure class="highlight shell"><table><tr><td class="code"><pre><span class="line">AddType application/x-httpd-php .abc</span><br></pre></td></tr></table></figure>
+
+<p>上面所示，任何以<code>abc</code>为后缀的文件都会当作<code>php</code>解析。</p>
 <p>为了使目录下的<code>.htaccess</code>文件起作用，需要设置<code>apache2.conf</code>。<code>.htaccess</code>不起作用的原因 ，通常是<code>apache2.conf</code>文件的<code>AllowOverride</code>设置有问题， 可能是<code>AllowOverride None</code> 造成的。把这个改为<code>AllowOverride All</code>即可。</p>
 <p>除了有上传点，可以发现<code>username</code>那里存在模板注入，通过阅读源码<code>trouble1_whiteBox/admin/welcome.php</code>，部分代码如下：</p>
 <figure class="highlight php"><table><tr><td class="code"><pre><span class="line">  &lt;div style=<span class="string">"padding:10px;"</span>&gt;</span><br><span class="line">         &lt;form method=<span class="string">'POST'</span> action=<span class="string">''</span>&gt;</span><br><span class="line">             &lt;div class="form-group"&gt;</span><br><span class="line">                 &lt;label&gt;Search username&lt;/label&gt;&lt;br&gt;</span><br><span class="line">                 &lt;input style="width:200px" class="form-control" width="50%" placeholder="Enter username" name="name"&gt;</span><br><span class="line">                 &lt;br&gt;&lt;br&gt;</span><br><span class="line">                 &lt;div align=<span class="string">"left"</span> &gt;</span><br><span class="line">                     &lt;button class="btn btn-default" type="submit" name='submit'&gt;Submit Button&lt;/button&gt;</span><br><span class="line"><span class="meta">&lt;?php</span> <span class="keyword">include</span> (<span class="string">'vendor/twig.php'</span>)<span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
@@ -929,11 +933,11 @@
 
 <p>看，只清空了<code>users</code>表，关联的表没有清空。</p>
 <p>到目前为止，<code>adminkey.txt</code>的内容我们已经读取到了，接下来就是通过<code>postgresql</code>执行<code>RCE</code>了。一般会想到<code>UDF</code>。</p>
-<p>先查看<code>postgresql</code>支持的扩展语言。</p>
+<p>先查看<code>postgresql</code>支持的扩展语言。（PostgreSQL允许用户定义的函数使用SQL和C之外的语言编写）</p>
 <figure class="highlight sql"><table><tr><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> pg_language;</span><br></pre></td></tr></table></figure>
 
 <p><img src="/2021/06/25/OSWE-Lab-Answers-Writeup/answers10.png" alt="answers10"></p>
-<p>仅支持<code>plpgsql</code>，这种是一种安全的语言，不能访问系统资源。全网搜索都没找到用它来写调用系统函数的<code>UDF</code>。暂时作罢。</p>
+<p>支持<code>C</code>，可以编写<code>C</code>语言版本的<code>UDF</code>，在此不再累赘，网上相关资料比较多。支持<code>plpgsql</code>，这种是一种安全的语言，不能访问系统资源。全网搜索都没找到用它来写调用系统函数的<code>UDF</code>。暂时作罢。</p>
 <p>这要要用到<code>CVE-2019-9193</code>来完成最后的RCE（Postgresql版本要求：9.3-11.2）。利用文章可以<a href="https://medium.com/greenwolf-security/authenticated-arbitrary-command-execution-on-postgresql-9-3-latest-cd18945914d5" target="_blank" rel="noopener">参考这里</a>。</p>
 <p>具体步骤如下：</p>
 <ol>
