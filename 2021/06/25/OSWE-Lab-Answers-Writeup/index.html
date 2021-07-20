@@ -40,7 +40,7 @@
 <meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-Answers-Writeup/answers11.png">
 <meta property="og:image" content="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-Answers-Writeup/answers12.png">
 <meta property="article:published_time" content="2021-06-25T12:07:34.000Z">
-<meta property="article:modified_time" content="2021-07-14T13:28:35.210Z">
+<meta property="article:modified_time" content="2021-07-20T12:08:35.144Z">
 <meta property="article:author" content="n0maj1o24">
 <meta property="article:tag" content="Java">
 <meta property="article:tag" content="OSWE">
@@ -239,7 +239,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-07-14 13:28:35" itemprop="dateModified" datetime="2021-07-14T13:28:35Z">2021-07-14</time>
+                <time title="修改时间：2021-07-20 12:08:35" itemprop="dateModified" datetime="2021-07-20T12:08:35Z">2021-07-20</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -289,7 +289,7 @@
 <li>登录之后，<code>ASK A QUESTION</code> 部分的<code>Description</code>存在<code>Stored XSS</code>，利用该<code>XSS</code>执行<code>CSRF</code>，让<code>admin</code>增加一个<code>isAdmin</code>为<code>True</code>的用户。</li>
 <li>借鉴第一步的方法，可以登录刚才创建的用户，访问<code>DATA IMPORT</code>，这里的功能是处理<code>XML</code>文件。可以利用<code>XXE</code>来获取<code>adminkey.txt</code>文件的内容。</li>
 <li>利用获取的<code>adminkey.txt</code>内容，访问<code>DATA QUERY</code>即可执行任意<code>Postgresql</code>操作。</li>
-<li>当前用户的<code>role</code>为<code>Superuser</code>，一般可以利用<code>UDF</code>获取<code>RCE</code>，本实验似乎不行，这里可以利用<code>CVE-2019-9193</code>来获取<code>RCE</code>。</li>
+<li>当前用户的<code>role</code>为<code>Superuser</code>，一般可以利用<code>UDF</code>获取<code>RCE</code>，这里还可以利用<code>CVE-2019-9193</code>来获取<code>RCE</code>。</li>
 </ol>
 <p>开始正式分析，<code>answers.jar</code>先反编译，利用<code>JD-GUI</code>即可。从反编译的文件目录可以知道本lab是一个<code>Spring Framework</code>的应用。如下所示：</p>
 <p><img src="/2021/06/25/OSWE-Lab-Answers-Writeup/answers1.png" alt="answers1"></p>
