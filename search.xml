@@ -1384,6 +1384,7 @@
 <p>注意rop_chain后面需要一些填充，可以使用<code>&#39;\x90&#39;</code>来进行，一般为<code>16</code>的整数倍，也可以直接替换为指定<code>b&#39;\x83\xE4\xF0&#39;</code>，这是边界对齐指令<code>and esp, 0xfffffff0</code>的机器码。</p>
 <p>效果图：</p>
 <p><img src="/2022/02/22/Vulnserver-TRUN-Bypass-DEP-With-ROP/5.png" alt="DEP"></p>
+<p><strong>参考：</strong><a href="https://fluidattacks.com/blog/vulnserver-trun-rop/" target="_blank" rel="noopener">https://fluidattacks.com/blog/vulnserver-trun-rop/</a></p>
 ]]></content>
       <categories>
         <category>Windows Exploitation</category>
