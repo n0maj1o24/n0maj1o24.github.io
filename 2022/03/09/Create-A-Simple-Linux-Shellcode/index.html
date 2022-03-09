@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="这里，学习编写简单的Linux Shellcode。本机的系统内核版本如下：  利用execve函数来打印&#x2F;etc&#x2F;passwd的内容。 来看一下execve函数的原型：https:&#x2F;&#x2F;man7.org&#x2F;linux&#x2F;man-pages&#x2F;man2&#x2F;execve.2.html  看一下具体的c语言实现： 123456789#include &lt;unistd.h&gt;main()&amp;#123; ch">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Create A Simple Linux Shellcode">
+<meta property="og:url" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/index.html">
+<meta property="og:site_name" content="Technical Memorandum">
+<meta property="og:description" content="这里，学习编写简单的Linux Shellcode。本机的系统内核版本如下：  利用execve函数来打印&#x2F;etc&#x2F;passwd的内容。 来看一下execve函数的原型：https:&#x2F;&#x2F;man7.org&#x2F;linux&#x2F;man-pages&#x2F;man2&#x2F;execve.2.html  看一下具体的c语言实现： 123456789#include &lt;unistd.h&gt;main()&amp;#123; ch">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/10.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/9.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/1.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/2.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/3.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/4.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/5.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/6.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/7.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/8.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/11.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/12.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/13.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/14.png">
+<meta property="article:published_time" content="2022-03-09T12:48:39.000Z">
+<meta property="article:modified_time" content="2022-03-09T15:25:26.027Z">
+<meta property="article:author" content="n0maj1o24">
+<meta property="article:tag" content="Linux">
+<meta property="article:tag" content="C">
+<meta property="article:tag" content="Shellcode">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/10.png">
+
+<link rel="canonical" href="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Create A Simple Linux Shellcode | Technical Memorandum</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Technical Memorandum</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Create A Simple Linux Shellcode
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-03-09 12:48:39 / 修改时间：15:25:26" itemprop="dateCreated datePublished" datetime="2022-03-09T12:48:39Z">2022-03-09</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Linux Exploitation</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/03/09/Create-A-Simple-Linux-Shellcode/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/03/09/Create-A-Simple-Linux-Shellcode/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>这里，学习编写简单的<code>Linux Shellcode</code>。本机的系统内核版本如下：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/10.png" alt="shellcode"></p>
+<p>利用<code>execve</code>函数来打印<code>/etc/passwd</code>的内容。</p>
+<p>来看一下<code>execve</code>函数的原型：<a href="https://man7.org/linux/man-pages/man2/execve.2.html" target="_blank" rel="noopener">https://man7.org/linux/man-pages/man2/execve.2.html</a></p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/9.png" alt="shellcode"></p>
+<p>看一下具体的<code>c</code>语言实现：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line">main()</span><br><span class="line">&#123;</span><br><span class="line"> <span class="keyword">char</span> *ls[<span class="number">3</span>];</span><br><span class="line"> ls[<span class="number">0</span>] = <span class="string">"/bin/cat"</span>;</span><br><span class="line"> ls[<span class="number">1</span>] = <span class="string">"/etc/passwd"</span>;</span><br><span class="line"> ls[<span class="number">2</span>] = <span class="literal">NULL</span>;</span><br><span class="line"> execve(ls[<span class="number">0</span>],ls,<span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个小程序实现的功能是查看<code>/etc/passwd</code>的内容。</p>
+<p>编译程序（看有的为了反汇编方便，会静态编译程序，我对比了一下，差别不是很大）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -g -o list list.c</span><br></pre></td></tr></table></figure>
+
+<p>先弄明白整个程序的执行过程，开启<code>gdb</code>调试。</p>
+<p>反汇编<code>main</code>函数：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/1.png" alt="shellcode"></p>
+<p>在<code>(main+68)</code>下断点，然后运行程序。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/2.png" alt="shellcode"></p>
+<p>查看此时<code>eip</code>的值，指定指向调用<code>execve</code>函数。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/3.png" alt="shellcode"></p>
+<p>反汇编<code>execve</code>函数：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/4.png" alt="shellcode"></p>
+<p>在<code>(execve+18)</code>处下断点，继续跟进。</p>
+<p>可以发现内部通过<code>call DWORT PTR gs:0x10</code>执行系统调用中断，进入系统调用。执行<code>__kernel_vsyscall</code>函数。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/5.png" alt="shellcode"></p>
+<p>查看一下此时各寄存器的值。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/6.png" alt="shellcode"></p>
+<p>这里，<code>eax</code>保存的是<code>execve</code>函数的系统调用号，<code>ebx</code>保存的是<code>execve</code>函数的第二个参数，<code>ecx</code>保存的是<code>execve</code>函数的第三个参数，<code>edx</code>的值为<code>0</code>。</p>
+<p>注意后续的两条指令，<code>sysenter</code>和<code>int 0x80</code>。通过<code>80</code>中断(软中断)进入系统调用的方式是<code>Linux 2.6</code>之前的做法。指令<code>sysenter</code>是在奔腾<code>(R) II</code>处理器上引入的“快速系统调用”功能的一部分。指令<code>sysenter</code>进行过专门的优化，能够以最佳性能转换到保护环 <code>0(CPL 0)</code>。<code>sysenter</code>是<code>int 0x80</code>的替代品，实现相同的功能。这里稍微有点疑问，为什么会连两条中断进入系统调用的指令，难道现在优先用第一条，如果不行再第二条？</p>
+<p>在<code>32</code>位系统里面，<code>execve</code>函数的系统调用号可以通过如下方式查询：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /usr/include/i386-linux-gnu/asm/unistd_32.h | grep execve</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/7.png" alt="shellcode"></p>
+<p>注意：以上<code>ecx</code>的值其实是一个二阶指针。具体可以看下面：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/8.png" alt="shellcode"></p>
+<p>到目前为止，程序的整个运行过程基本搞清楚了。现在来写一个汇编实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">section .text</span><br><span class="line">global _start</span><br><span class="line">_start:</span><br><span class="line">  xor   eax, eax</span><br><span class="line">  mov   edx, eax</span><br><span class="line">  push  edx                  </span><br><span class="line">  push  0x7461632f               </span><br><span class="line">  push  0x6e69622f</span><br><span class="line">  mov   ebx,esp             </span><br><span class="line">  push  edx                  </span><br><span class="line">  push  0x64777373</span><br><span class="line">  push  0x61702f2f</span><br><span class="line">  push  0x6374652f </span><br><span class="line">  mov   ecx,esp               </span><br><span class="line">  push  edx</span><br><span class="line">  push  ecx</span><br><span class="line">  push  ebx</span><br><span class="line">  mov   ecx,esp</span><br><span class="line">  mov   al,0x0b</span><br><span class="line">  int   0x80</span><br></pre></td></tr></table></figure>
+
+<p>上面这段代码里面，注意<code>/bin/cat</code>和<code>/etc/passwd</code>都是按照四个字符一组进行分割，转换成<code>16</code>进制，压入栈中。<code>linux</code>有个地方很有意思<code>/bin/cat</code>和<code>/bin//cat</code>最后解析出来是一样的。这样四个字符一组的时候，出现空缺的字符可以用<code>/</code>代替，毕竟不会影响最后的解析。还要注意大小端的问题。</p>
+<p>编译：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nasm -f elf32 call_execve.asm</span><br></pre></td></tr></table></figure>
+
+<p>链接：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ld -m elf_i386 -o call_execve call_execve.o</span><br></pre></td></tr></table></figure>
+
+<p>执行效果如下：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/11.png" alt="shellcode"></p>
+<p>现在，来提取<code>shellcode</code>。参考：<a href="https://www.commandlinefu.com/commands/view/6051/get-all-shellcode-on-binary-file-from-objdump" target="_blank" rel="noopener">https://www.commandlinefu.com/commands/view/6051/get-all-shellcode-on-binary-file-from-objdump</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">objdump -d ./call_execve|grep <span class="string">'[0-9a-f]:'</span>|grep -v <span class="string">'file'</span>|cut -f2 -d:|cut -f1-6 -d<span class="string">' '</span>|tr -s <span class="string">' '</span>|tr <span class="string">'\t'</span> <span class="string">' '</span>|sed <span class="string">'s/ $//g'</span>|sed <span class="string">'s/ /\\x/g'</span>|paste -d <span class="string">''</span> -s |sed <span class="string">'s/^/"/'</span>|sed <span class="string">'s/$/"/g'</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/12.png" alt="shellcode"></p>
+<p>最后，测试一下。这里用到了函数指针的概念。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">char</span></span><br><span class="line">shellcode[]=<span class="string">"\x31\xc0\x99\x52\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x52\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63\x89\xe1\xb0\x0b\x52\x51\x53\x89\xe1\xcd\x80"</span>;</span><br><span class="line"> <span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line"> (*(<span class="keyword">void</span> (*)()) shellcode)();</span><br><span class="line"> <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里会出现一个问题，编译之后运行会出现<code>segmentation fault</code>。这个错误的出现与内核版本有关，解决办法可以参考：<a href="https://medium.com/csg-govtech/why-doesnt-my-shellcode-work-anymore-136ce179643f" target="_blank" rel="noopener">https://medium.com/csg-govtech/why-doesnt-my-shellcode-work-anymore-136ce179643f</a></p>
+<p>简而言之，就是把全局变量变为局部变量。我发现改完之后直接编译，运行还是会出错。发现需要编译的时候加上<code>-z execstack</code>，最终才能正常运行。</p>
+<p>最终的测试代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> shellcode[] = <span class="string">"\x31\xc0\x89\xc2\x52\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x52\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63\x89\xe1\x52\x51\x53\x89\xe1\xb0\x0b\xcd\x80"</span>;</span><br><span class="line">    (*(<span class="keyword">void</span>(*)()) shellcode)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编译方式如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -z execstack -g customshellcode.c -o customshellcode</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/13.png" alt="shellcode"></p>
+<p>最终，运行成功：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/14.png" alt="shellcode"></p>
+<p><strong>参考：</strong></p>
+<p>1.<a href="https://www.cnblogs.com/LittleHann/p/4111692.html" target="_blank" rel="noopener">https://www.cnblogs.com/LittleHann/p/4111692.html</a></p>
+<p>2.<a href="http://cybersecurity.ustc.edu.cn/ns/ns09.pdf" target="_blank" rel="noopener">http://cybersecurity.ustc.edu.cn/ns/ns09.pdf</a></p>
+<p>3.<a href="https://www.anquanke.com/post/id/216207" target="_blank" rel="noopener">https://www.anquanke.com/post/id/216207</a></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>n0maj1o24
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/" title="Create A Simple Linux Shellcode">https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Linux/" rel="tag"># Linux</a>
+              <a href="/tags/C/" rel="tag"># C</a>
+              <a href="/tags/Shellcode/" rel="tag"># Shellcode</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/03/03/SEH-Overflow-Introduction/" rel="prev" title="SEH Overflow Introduction">
+      <i class="fa fa-chevron-left"></i> SEH Overflow Introduction
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="n0maj1o24"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">n0maj1o24</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">26</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">28</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/n0maj1o24" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;n0maj1o24" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-nd.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">n0maj1o24</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : false,
+      appId      : 'YxcX5Cznyp28BYsOhkgW4VH2-gzGzoHsz',
+      appKey     : 'DNYhYDu0OfL5c9gaMjQ1vbNC',
+      placeholder: "Just go go",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
