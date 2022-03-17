@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="继上一篇《Create A Simple Linux Shellcode》之后，这里来探讨一下Windows下简单shellcode的编写。 Windows和Linux区别还是挺大的。Linux的函数调用只需要知道系统调用号，然后系统调用即可。Windows的函数与特定DLL相关，需要知道DLL特定导出函数的地址才能调用。在进一步进入shellcode编写之前，需要了解&#96;&#96;PEB和PE&#96;的相关知识">
+  <meta name="description" content="继上一篇《Create A Simple Linux Shellcode》之后，这里来探讨一下Windows下简单shellcode的编写。 Windows和Linux区别还是挺大的。Linux的函数调用只需要知道系统调用号，然后系统调用即可。Windows的函数与特定DLL相关，需要知道DLL特定导出函数的地址才能调用。在进一步进入shellcode编写之前，需要了解PEB和PE的相关知识。 第">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Create A Simple Windows Shellcode">
 <meta property="og:url" content="https://n0maj1o24.github.io/2022/03/11/Create-A-Simple-Windows-Shellcode/index.html">
 <meta property="og:site_name" content="Technical Memorandum">
-<meta property="og:description" content="继上一篇《Create A Simple Linux Shellcode》之后，这里来探讨一下Windows下简单shellcode的编写。 Windows和Linux区别还是挺大的。Linux的函数调用只需要知道系统调用号，然后系统调用即可。Windows的函数与特定DLL相关，需要知道DLL特定导出函数的地址才能调用。在进一步进入shellcode编写之前，需要了解&#96;&#96;PEB和PE&#96;的相关知识">
+<meta property="og:description" content="继上一篇《Create A Simple Linux Shellcode》之后，这里来探讨一下Windows下简单shellcode的编写。 Windows和Linux区别还是挺大的。Linux的函数调用只需要知道系统调用号，然后系统调用即可。Windows的函数与特定DLL相关，需要知道DLL特定导出函数的地址才能调用。在进一步进入shellcode编写之前，需要了解PEB和PE的相关知识。 第">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://n0maj1o24.github.io/2022/03/11/Create-A-Simple-Windows-Shellcode/1.png">
 <meta property="og:image" content="https://n0maj1o24.github.io/2022/03/11/Create-A-Simple-Windows-Shellcode/2.png">
@@ -55,7 +55,7 @@
 <meta property="og:image" content="https://n0maj1o24.github.io/2022/03/11/Create-A-Simple-Windows-Shellcode/PE13.png">
 <meta property="og:image" content="https://n0maj1o24.github.io/2022/03/11/Create-A-Simple-Windows-Shellcode/PE14.png">
 <meta property="article:published_time" content="2022-03-11T07:27:17.000Z">
-<meta property="article:modified_time" content="2022-03-17T23:32:30.000Z">
+<meta property="article:modified_time" content="2022-03-17T23:36:47.434Z">
 <meta property="article:author" content="n0maj1o24">
 <meta property="article:tag" content="C">
 <meta property="article:tag" content="Windows">
@@ -254,7 +254,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-03-17 23:32:30" itemprop="dateModified" datetime="2022-03-17T23:32:30Z">2022-03-17</time>
+                <time title="修改时间：2022-03-17 23:36:47" itemprop="dateModified" datetime="2022-03-17T23:36:47Z">2022-03-17</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -299,7 +299,7 @@
 
       
         <p>继上一篇《<code>Create A Simple Linux Shellcode</code>》之后，这里来探讨一下<code>Windows</code>下简单<code>shellcode</code>的编写。</p>
-<p><code>Windows</code>和<code>Linux</code>区别还是挺大的。<code>Linux</code>的函数调用只需要知道系统调用号，然后系统调用即可。<code>Windows</code>的函数与特定<code>DLL</code>相关，需要知道<code>DLL</code>特定导出函数的地址才能调用。在进一步进入<code>shellcode</code>编写之前，需要了解``PEB<code>和</code>PE`的相关知识。</p>
+<p><code>Windows</code>和<code>Linux</code>区别还是挺大的。<code>Linux</code>的函数调用只需要知道系统调用号，然后系统调用即可。<code>Windows</code>的函数与特定<code>DLL</code>相关，需要知道<code>DLL</code>特定导出函数的地址才能调用。在进一步进入<code>shellcode</code>编写之前，需要了解<code>PEB</code>和<code>PE</code>的相关知识。</p>
 <p><strong>第一部分：PEB中某些重要的部分</strong></p>
 <p><code>TEB</code>（<code>Thread Environment Block</code>，线程环境块）系统在此TEB中保存频繁使用的线程相关的数据。位于用户地址空间，在比 <code>PEB</code> 所在地址低的地方。用户模式下，当前线程的<code>TEB</code>位于独立的<code>4KB</code>段(页)，可通过<code>CPU</code>的<code>FS</code>寄存器来访问该段，一般存储在<code>[FS:0x00]</code>。</p>
 <p><code>PEB</code>（<code>Process Environment Block</code>，进程环境块）存放进程信息，每个进程都有自己的<code>PEB</code>信息。位于用户地址空间。可在<code>TEB</code>结构地址偏移<code>0x30</code>处获得<code>PEB</code>的地址位置。</p>
@@ -355,7 +355,8 @@
 <p><img src="/2022/03/11/Create-A-Simple-Windows-Shellcode/PE.png" alt="shellcode"></p>
 <p>结合另一个图一起看：</p>
 <p><img src="/2022/03/11/Create-A-Simple-Windows-Shellcode/PE2.png" alt="shellcode"></p>
-<p>先来看一下<code>DOS Header</code>：查看<code>winnt.h</code>文件（本机位置：<code>C:\Program Files\Windows Kits\10\Include\10.0.19041.0\um\winnt.h</code>）或者访问：<a href="https://www.nirsoft.net/kernel_struct/vista/IMAGE_DOS_HEADER.html" target="_blank" rel="noopener">https://www.nirsoft.net/kernel_struct/vista/IMAGE_DOS_HEADER.html</a></p>
+<p>先来看一下<code>DOS Header</code>：查看<code>winnt.h</code>文件（本机位置：<code>C:\Program Files\Windows Kits\10\Include\10.0.19041.0\um\winnt.h</code>）</p>
+<p>或者访问：<a href="https://www.nirsoft.net/kernel_struct/vista/IMAGE_DOS_HEADER.html" target="_blank" rel="noopener">https://www.nirsoft.net/kernel_struct/vista/IMAGE_DOS_HEADER.html</a></p>
 <figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">IMAGE_DOS_HEADER</span> &#123;</span>      <span class="comment">// DOS .EXE header</span></span><br><span class="line">    WORD   e_magic;                     <span class="comment">// Magic number</span></span><br><span class="line">    WORD   e_cblp;                      <span class="comment">// Bytes on last page of file</span></span><br><span class="line">    WORD   e_cp;                        <span class="comment">// Pages in file</span></span><br><span class="line">    WORD   e_crlc;                      <span class="comment">// Relocations</span></span><br><span class="line">    WORD   e_cparhdr;                   <span class="comment">// Size of header in paragraphs</span></span><br><span class="line">    WORD   e_minalloc;                  <span class="comment">// Minimum extra paragraphs needed</span></span><br><span class="line">    WORD   e_maxalloc;                  <span class="comment">// Maximum extra paragraphs needed</span></span><br><span class="line">    WORD   e_ss;                        <span class="comment">// Initial (relative) SS value</span></span><br><span class="line">    WORD   e_sp;                        <span class="comment">// Initial SP value</span></span><br><span class="line">    WORD   e_csum;                      <span class="comment">// Checksum</span></span><br><span class="line">    WORD   e_ip;                        <span class="comment">// Initial IP value</span></span><br><span class="line">    WORD   e_cs;                        <span class="comment">// Initial (relative) CS value</span></span><br><span class="line">    WORD   e_lfarlc;                    <span class="comment">// File address of relocation table</span></span><br><span class="line">    WORD   e_ovno;                      <span class="comment">// Overlay number</span></span><br><span class="line">    WORD   e_res[<span class="number">4</span>];                    <span class="comment">// Reserved words</span></span><br><span class="line">    WORD   e_oemid;                     <span class="comment">// OEM identifier (for e_oeminfo)</span></span><br><span class="line">    WORD   e_oeminfo;                   <span class="comment">// OEM information; e_oemid specific</span></span><br><span class="line">    WORD   e_res2[<span class="number">10</span>];                  <span class="comment">// Reserved words</span></span><br><span class="line">    LONG   e_lfanew;                    <span class="comment">// File address of new exe header</span></span><br><span class="line">  &#125; IMAGE_DOS_HEADER, *PIMAGE_DOS_HEADER;</span><br></pre></td></tr></table></figure>
 
 <p>这里主要关注<code>e_lfanew</code>，它在偏移<code>0x3c</code>处，保存<code>PE</code>头相对于文件的偏移地址，这可以让我们到达<code>PE</code>头，接下来看一下<code>PE</code>头的结构：<a href="https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_nt_headers32" target="_blank" rel="noopener">https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_nt_headers32</a></p>
@@ -383,7 +384,7 @@
 <p>上面根据<code>Name</code>字段找到<code>dll</code>的文件名以后，使用<code>LoadLibrary</code>将<code>dll</code>文件加载进内存，而为了找到相应的函数地址，还需要使用<code>GetProcAddress</code>函数来得到函数地址，而<code>GetProcAddress</code>函数可以使用字符串和序号的方式来获得函数地址。·</p>
 <p>对于字符串的方式，首先是去<code>AddressOfNames</code>得到各个字符串的地址，然后在字符串的地址中找到相应的字符串，和<code>GetProcAddress</code>函数传入的字符串做比较，如果相等，则记录下这个相等的数组的下标，根据这个下标去<code>AddressOfNameOrdinals</code>中查找对应的下标中的序号值，得到的值就是作为数组<code>AddressOfFunctions</code>的索引来找到相应的函数地址。</p>
 <p>另外一种是根据导出序号来查找函数，这个时候，<code>GetProcAddress</code>函数会首先将序号减去<code>Base</code>的值，得到<code>AddressOfFunctions</code>数组的索引，在根据这个索引来获得对应的函数的地址。</p>
-<p>关于<code>GetProcAddress</code>，先看下这个：<a href="https://docs.microsoft.com/en-us/windows/win32/win7appqual/new-low-level-binaries。主要意思就是从`kernel32.dll`挪到了`kernelbase.dll`。我们来验证一下：" target="_blank" rel="noopener">https://docs.microsoft.com/en-us/windows/win32/win7appqual/new-low-level-binaries。主要意思就是从`kernel32.dll`挪到了`kernelbase.dll`。我们来验证一下：</a></p>
+<p>关于<code>GetProcAddress</code>，先看下这个：<a href="https://docs.microsoft.com/en-us/windows/win32/win7appqual/new-low-level-binaries" target="_blank" rel="noopener">new-low-level-binaries</a>。主要意思就是从<code>kernel32.dll</code>挪到了<code>kernelbase.dll</code>。我们来验证一下：</p>
 <p><img src="/2022/03/11/Create-A-Simple-Windows-Shellcode/PE6.png" alt="shellcode"></p>
 <p>或者用下面的方式：</p>
 <p><img src="/2022/03/11/Create-A-Simple-Windows-Shellcode/PE7.png" alt="shellcode"></p>
