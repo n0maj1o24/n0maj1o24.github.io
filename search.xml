@@ -1737,7 +1737,7 @@
     <title>Create A Simple Windows Shellcode</title>
     <url>/2022/03/11/Create-A-Simple-Windows-Shellcode/</url>
     <content><![CDATA[<p>继上一篇《<code>Create A Simple Linux Shellcode</code>》之后，这里来探讨一下<code>Windows</code>下简单<code>shellcode</code>的编写。</p>
-<p><code>Windows</code>和<code>Linux</code>区别还是挺大的。<code>Linux</code>的函数调用只需要知道系统调用号，然后系统调用即可。<code>Windows</code>的函数与特定<code>DLL</code>相关，需要知道<code>DLL</code>特定导出函数的地址才能调用。在进一步进入<code>shellcode</code>编写之前，需要了解<code>TEB</code>和<code>PEB</code>的概念。</p>
+<p><code>Windows</code>和<code>Linux</code>区别还是挺大的。<code>Linux</code>的函数调用只需要知道系统调用号，然后系统调用即可。<code>Windows</code>的函数与特定<code>DLL</code>相关，需要知道<code>DLL</code>特定导出函数的地址才能调用。在进一步进入<code>shellcode</code>编写之前，需要了解``PEB<code>和</code>PE`的相关知识。</p>
 <p><strong>第一部分：PEB中某些重要的部分</strong></p>
 <p><code>TEB</code>（<code>Thread Environment Block</code>，线程环境块）系统在此TEB中保存频繁使用的线程相关的数据。位于用户地址空间，在比 <code>PEB</code> 所在地址低的地方。用户模式下，当前线程的<code>TEB</code>位于独立的<code>4KB</code>段(页)，可通过<code>CPU</code>的<code>FS</code>寄存器来访问该段，一般存储在<code>[FS:0x00]</code>。</p>
 <p><code>PEB</code>（<code>Process Environment Block</code>，进程环境块）存放进程信息，每个进程都有自己的<code>PEB</code>信息。位于用户地址空间。可在<code>TEB</code>结构地址偏移<code>0x30</code>处获得<code>PEB</code>的地址位置。</p>
@@ -1825,7 +1825,7 @@
 <p><img src="/2022/03/11/Create-A-Simple-Windows-Shellcode/PE6.png" alt="shellcode"></p>
 <p>或者用下面的方式：</p>
 <p><img src="/2022/03/11/Create-A-Simple-Windows-Shellcode/PE7.png" alt="shellcode"></p>
-<p><strong>补充：</strong>后续发现<code>kernel32.dll</code>的导出表中能够找到<code>GetProcAddress</code>函数，只是它的调用有一些变化，具体可以参照：<a href="https://stackoverflow.com/questions/61769164/windbg-help-missing-kernel32-function中介绍的分析方法。所以在`shellcode`编写的时候，在`kernel32.dll`或者在`kernelbase.dll`中的导出表找`GetProcAddress`都可。" target="_blank" rel="noopener">https://stackoverflow.com/questions/61769164/windbg-help-missing-kernel32-function中介绍的分析方法。所以在`shellcode`编写的时候，在`kernel32.dll`或者在`kernelbase.dll`中的导出表找`GetProcAddress`都可。</a></p>
+<p><strong>补充：</strong>后续发现<code>kernel32.dll</code>的导出表中能够找到<code>GetProcAddress</code>函数，只是它的调用有一些变化，具体可以参照：<a href="https://stackoverflow.com/questions/61769164/windbg-help-missing-kernel32-function" target="_blank" rel="noopener">windbg-help-missing-kernel32-function</a>中介绍的分析方法。所以在<code>shellcode</code>编写的时候，在<code>kernel32.dll</code>或者在<code>kernelbase.dll</code>中的导出表找<code>GetProcAddress</code>都可。</p>
 <p>接下来，在<code>windbg</code>中来直观的展示一下。以<code>kernelbase.dll</code>为例：</p>
 <p><img src="/2022/03/11/Create-A-Simple-Windows-Shellcode/PE8.png" alt="shellcode"></p>
 <p>查看<code>kernelbase.dll</code>文件头信息：</p>
