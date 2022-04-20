@@ -188,6 +188,116 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/" class="post-title-link" itemprop="url">ARM、MIPS交叉编译工具试用小记</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-04-19 17:20:52" itemprop="dateCreated datePublished" datetime="2020-04-19T17:20:52Z">2020-04-19</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-22 10:20:50" itemprop="dateModified" datetime="2021-04-22T10:20:50Z">2021-04-22</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index"><span itemprop="name">Linux</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/04/20/ARM%E3%80%81MIPS%E4%BA%A4%E5%8F%89%E7%BC%96%E8%AF%91%E5%B7%A5%E5%85%B7%E8%AF%95%E7%94%A8%E5%B0%8F%E8%AE%B0/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>  最近，研究了一下交叉编译技术。主要涉及的语言包括<code>Go</code>和<code>C</code>。其中<code>Go</code>的交叉编译相对来说比较容易，<code>C</code>的交叉编译在环境配置上有一些难度和繁琐。在研究过程中，踩了不少坑，特此记录。</p>
+<p><code>Go</code>语言的交叉编译比较容易，基本上就是参数上设置正确就OK了。静态编译的时候，可执行文件相对比较大，这在<code>MIPS</code>设备中，会有些不适合。因为<code>MIPS</code>设备存储容量比较小，内存也比较小，如果静态编译出来的文件过大，可能无法下载到设备中，更有甚者无法加载可执行文件，这种情况基本上就只能靠<code>C</code>语言来进行交叉编译可执行文件了。<code>Go</code>交叉编译的情况，可以参考<a href="https://github.com/eyasliu/blog/issues/27" target="_blank" rel="noopener">链接1</a>所示，我觉得写的不错。对于<code>Go</code>支持的操作系统和具体版本，可以参考<a href="https://github.com/golang/go/wiki" target="_blank" rel="noopener">Github Go wiki</a>。如关于<code>ARM</code>的<a href="https://github.com/golang/go/wiki/GoArm" target="_blank" rel="noopener">链接2</a>，关于<code>MIPS</code>的<a href="https://github.com/golang/go/wiki/GoMips" target="_blank" rel="noopener">链接3</a>.</p>
+<p>  主要来讲<code>C</code>的交叉编译，毕竟坑多，配置繁琐。</p>
+<p>  我使用过的交叉编译工具或者环境如下：<code>dockcross</code>,<code>Buildroot</code>,<code>crosstool-NG</code>.</p>
+<p><code>dockcross</code>相对来说简单方便，基于<code>docker</code>，能够满足一般需求。可以参考<a href="https://github.com/dockcross/dockcross" target="_blank" rel="noopener">链接4</a>.</p>
+<p>  我这里出现的情况是，<code>dockcross</code>解决不了我面临的现实问题。静态编译的可执行文件在设备上运行的时候，提示<code>kernel old</code>错误。这里的原因是<code>dockcross-arm docker</code>采用的<code>linux</code>内核版本太高，其实动态编译得到的可执行程序是能在设备上执行成功的。<code>glibc</code>向下兼容，所以执行成功了。这是我后续测试发现的。动态编译文件还小，如果能够跑起来，其实动态编译就好了。因为内核版本高了，那就找个内核版本和设备差不多的。然而，<code>dockcross</code>构建的<code>docker</code>镜像里，没有符合我要求的。</p>
+<p>  遇到问题，那就解决问题。找到<a href="https://buildroot.org/" target="_blank" rel="noopener">Buildroot</a>，看着口号是让嵌入式<code>linux</code>环境构建更加容易。我下载了最新版，看了一下说明文档，配置起来果然方便。<code>make menuconfig</code>进行配置，然后<code>make</code>就可以了。<code>make menuconfig</code>选择它支持的<code>kernel</code>版本，有个小坑。虽然配置选项可以选择<code>kernel 2.6.x</code>版本，但是在<code>make</code>的时候，下载<code>kernel</code>的时候会出现404错误。<code>buildroot</code>官方的<a href="http://sources.buildroot.net/linux/" target="_blank" rel="noopener">下载地址</a>已经没有<code>2.6.x</code>版本的内核了，最低版本是<code>3.2.101</code>。如果选择了<code>2.6.x</code>版本的<code>kernel</code>，需要让其到<a href="https://mirrors.edge.kernel.org/pub/linux/kernel/" target="_blank" rel="noopener">cdn.kernel</a>网站上去下载对应文件，主要是参考<code>cdn.kernel</code>网站上，对应<code>kernel</code>文件名，填入<code>URL of custom kernel tarball</code>中。<code>C</code>运行库有<code>uClibc</code>、<code>glibc</code>、<code>musl</code>可以选择。<code>glibc</code>编译出来的静态文件相对较大，<code>uClibc</code>编译出来的静态文件相对较小，优先选择<code>uClibc</code>，<code>musl</code>我暂时还没用到，这里不评价。</p>
+<p><a href="https://crosstool-ng.github.io/" target="_blank" rel="noopener">crosstool-NG</a>本来想用，后来看到<code>Buildroot</code>解决了我的问题，就把它暂时搁置了。看着<code>crosstool-NG</code>配置和<code>Buildroot</code>大同小异，这里占个位置，后续使用到了，再来填坑。</p>
+<p>  其实，最后我还用到了<code>qemu-mips-static</code>来加载<code>uClibc</code>。因为我遇到一个很老的<code>MIPS</code>系统，内核版本是<code>2.4.x</code>，这在<code>dockcross</code>构建的环境里面没有，<code>Buildroot</code>高版本已经不支持<code>kernel2.4.x</code>了。使用高版本的<code>kernel</code>进行构建交叉编译工具，最后编译出来的可执行程序在设备上跑不起来，问题如下：</p>
+<p><code>line 1: syntax error: unexpected “(”</code></p>
+<p>  我琢磨还是内核版本不兼容导致的。最直接的版本就是安装一个内核版本相同的系统，然后进行交叉编译。说干就干。</p>
+<p>  尝试安装<code>ubuntu6.06.1</code>、<code>redhat 9.0</code>这些古老的<code>linux</code>系统结合<code>buildroot-0.9.27</code>来交叉编译，很不幸老旧的<code>linux</code>发行版不支持包更新了，我只能断了这个念头。无意中我在<a href="https://www.uclibc.org/toolchains.html" target="_blank" rel="noopener">uClibc</a>官网发现可以挂载编译好的基于<code>Buildroot-0.9.27</code>的<code>uClibc</code>来进行交叉编译任务。我真是喜出望外，其实是我没仔细看官网，不然前面安装老旧版本的<code>linux</code>工作就可以免了。uClibc官网的下载地址挂了，用这个<a href="https://cdn.kernel.org/pub/linux/libs/uclibc/" target="_blank" rel="noopener">地址</a>下载吧。以<code>root_fs_mips</code>为例，来进行挂载。主要命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">bunzip2 root_fs_mips.bz2</span><br><span class="line">mkdir root_fs_mips</span><br><span class="line">sudo su</span><br><span class="line">mount -o loop root_fs_mips.ext2 root_fs_mips</span><br><span class="line">chroot root_fs_mips /bin/bash -</span><br></pre></td></tr></table></figure>
+
+<p>  这里有个小坑，因为本机是<code>linux</code>，在挂载<code>root_fs_mips</code>的时候出现如下错误：</p>
+<p><code>chroot: failed to run command &#39;/bin/bash&#39;: Exec format error</code></p>
+<p>  原因是系统架构不同导致的错误。解决办法就是借助<code>qemu-mips-static</code>。<code>qemu</code>的安装如下</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt install qemu-user-static</span><br></pre></td></tr></table></figure>
+
+<p>  最后借助<code>qemu_mips_static</code>挂载<code>root_fs_mips</code>的命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp /usr/bin/qemu-mips-static root_fs_mips/usr/bin</span><br><span class="line">chroot root_fs_mips qemu-mips-static /bin/bash</span><br></pre></td></tr></table></figure>
+
+<p>  对于老旧版本的<code>MIPS</code>，这样进行交叉编译待执行程序，就可以解决问题了。</p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2019/08/27/On-The-Way/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1046,7 +1156,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">27</span>
+          <span class="site-state-item-count">28</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
