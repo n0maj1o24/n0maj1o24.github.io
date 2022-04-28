@@ -188,6 +188,110 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2018/05/12/ubuntu-18-04-%E5%AE%89%E8%A3%85php-5-6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/05/12/ubuntu-18-04-%E5%AE%89%E8%A3%85php-5-6/" class="post-title-link" itemprop="url">ubuntu 18.04 安装php 5.6</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-05-11 16:53:16" itemprop="dateCreated datePublished" datetime="2018-05-11T16:53:16Z">2018-05-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-11 08:55:32" itemprop="dateModified" datetime="2021-06-11T08:55:32Z">2021-06-11</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Configuration/" itemprop="url" rel="index"><span itemprop="name">Configuration</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/05/12/ubuntu-18-04-%E5%AE%89%E8%A3%85php-5-6/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/05/12/ubuntu-18-04-%E5%AE%89%E8%A3%85php-5-6/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php5.6</span><br><span class="line"></span><br><span class="line">you can install more php5.6 module</span><br><span class="line">sudo apt-get install php5.6-fpm php5.6-mbstring php5.6-mcrypt php5.6-mysql php5.6-xml php5.6-intl php-apcu php-uuid php5.6-cgi php5.6-cli php5.6-gd php5.6-ldap php5.6-sqlite3 php-uploadprogress libapache2-mod-php5.6</span><br></pre></td></tr></table></figure>
+
+<p>php7.2与php5.6版本切换</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">a2dismod php7.2</span><br><span class="line">a2enmod php5.6</span><br><span class="line">systemctl restart apache2</span><br></pre></td></tr></table></figure>
+
+<p>默认没有开启<code>PHP 5.6 FPM</code>，为了开启<code>PHP 5.6 FPM</code>，需要执行一下命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">a2enmod proxy_fcgi setenvif </span><br><span class="line">a2enconf php5.6-fpm</span><br></pre></td></tr></table></figure>
+
+<p>同时执行如下命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">a2disconf php7.2-fpm</span><br></pre></td></tr></table></figure>
+
+<p>最后重启<code>apache</code></p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl reload apache2</span><br></pre></td></tr></table></figure>
+
+<p>以上命令是Apache上PHP版本切换的命令，下面是CLI端切换的命令</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo update-alternatives --set php /usr/bin/php7.2</span><br><span class="line">sudo update-alternatives --set phpize /usr/bin/phpize7.2</span><br><span class="line">sudo update-alternatives --set php-config /usr/bin/php-config7.2</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2017/06/12/JavaMail%E8%A7%A3%E6%9E%90%E7%95%B8%E5%BD%A2%E9%82%AE%E4%BB%B6/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -454,7 +558,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-count">33</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
