@@ -211,10 +211,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-04-28 23:21:08 / 修改时间：15:44:08" itemprop="dateCreated datePublished" datetime="2022-04-28T23:21:08Z">2022-04-28</time>
+              <time title="创建时间：2022-04-28 23:21:08" itemprop="dateCreated datePublished" datetime="2022-04-28T23:21:08Z">2022-04-28</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-29 14:52:05" itemprop="dateModified" datetime="2022-04-29T14:52:05Z">2022-04-29</time>
+              </span>
 
           
   
@@ -241,7 +247,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>本次实验讨论在<code>Win10 21h1 x86</code>系统下关闭<code>DEP</code>。继续分析<code>Vulnserver HTER</code>，先来看一下逆向的代码，挑重点的看：</p>
+          <p>本次实验讨论在<code>Win10 21h2 x86</code>系统下关闭<code>DEP</code>。继续分析<code>Vulnserver HTER</code>，先来看一下逆向的代码，挑重点的看：</p>
 <p><img src="/2022/04/29/Vulnserver-HTER-Exploit-with-Restricted-Characters/01.png" alt="BOF"></p>
 <p>这里的<code>_strtoul</code>函数，将字符串转换为无符号长整数值。具体可以参考：<a href="https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/strtoul-strtoul-l-wcstoul-wcstoul-l?view=msvc-170.本程序是将`16`进制转换为无符号长整数值。意味着我们需要传入`hex`格式的字符串，也就是`0-9，A-F，a-f`都可以。这对后续坏字符查找和最后的`shellcode`编写都很重要。" target="_blank" rel="noopener">https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/strtoul-strtoul-l-wcstoul-wcstoul-l?view=msvc-170.本程序是将`16`进制转换为无符号长整数值。意味着我们需要传入`hex`格式的字符串，也就是`0-9，A-F，a-f`都可以。这对后续坏字符查找和最后的`shellcode`编写都很重要。</a></p>
 <p>来看看新的<code>fuzz</code>代码：</p>
@@ -331,7 +337,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-28 15:44:53" itemprop="dateModified" datetime="2022-04-28T15:44:53Z">2022-04-28</time>
+                <time title="修改时间：2022-04-29 14:51:53" itemprop="dateModified" datetime="2022-04-29T14:51:53Z">2022-04-29</time>
               </span>
 
           
@@ -359,7 +365,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>本次实验讨论在<code>Win10 21h1 x86</code>系统下关闭<code>DEP</code>。继续分析<code>vulnserver LTER</code>命令的栈溢出。先看一下通过逆向可以获取的信息，挑重点的看。</p>
+          <p>本次实验讨论在<code>Win10 21h2 x86</code>系统下关闭<code>DEP</code>。继续分析<code>vulnserver LTER</code>命令的栈溢出。先看一下通过逆向可以获取的信息，挑重点的看。</p>
 <p>先来看看下面这个条件分支：</p>
 <p><img src="/2022/04/28/Vulnserver-LTER-Exploit-with-Restricted-Characters/01.png" alt="BOF"></p>
 <p>注意<code>cmp byte ptr [eax],0</code>这条指令，获取<code>eax</code>中最高位的<code>8</code>位（小端序）与<code>0</code>之间做比较，如果大于<code>0</code>，则<code>SF</code>赋值为<code>1</code>，如果小于等于<code>0</code>，则<code>SF</code>赋值为<code>0</code>。如果<code>SF</code>为<code>0</code>，则<code>JNS</code>指令为真，产生跳转；如果<code>SF</code>为<code>1</code>，则<code>JNS</code>指令为假，不跳转。后续分支的两部分代码，差别在<code>sub al,7Fh</code>，这里可以知道如果<code>eax</code>的值大于<code>7Fh</code>，则会被减去<code>7Fh</code>再存入<code>[edx]</code>中，相当于对<code>eax</code>的值做了一个简单的变换。实际上，就是存入的字符只能是<code>ASCII</code>码，这在后续<code>badarray</code>确定，<code>shellcode</code>编写都很重要。</p>
@@ -548,10 +554,16 @@
                 <i class="far fa-calendar"></i>
               </span>
               <span class="post-meta-item-text">发表于</span>
-              
 
-              <time title="创建时间：2022-04-22 09:24:22 / 修改时间：09:43:34" itemprop="dateCreated datePublished" datetime="2022-04-22T09:24:22Z">2022-04-22</time>
+              <time title="创建时间：2022-04-22 09:24:22" itemprop="dateCreated datePublished" datetime="2022-04-22T09:24:22Z">2022-04-22</time>
             </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-04-29 14:51:59" itemprop="dateModified" datetime="2022-04-29T14:51:59Z">2022-04-29</time>
+              </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
                 <i class="far fa-folder"></i>
@@ -587,7 +599,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>本次实验讨论在<code>Win10 21h1 x86</code>系统下关闭<code>DEP</code>，利用<code>egghunter</code>完成，因为空间大小问题，最终的利用代码会涉及到多个<code>stage</code>。</p>
+          <p>本次实验讨论在<code>Win10 21h2 x86</code>系统下关闭<code>DEP</code>，利用<code>egghunter</code>完成，因为空间大小问题，最终的利用代码会涉及到多个<code>stage</code>。</p>
 <p>先来看一下<code>IDA</code>中<code>KSTET</code>的大致处理流程，挑重点的看：</p>
 <p><img src="/2022/04/22/Vulnserver-KSTET-Exploit-with-Egghunter/01.png" alt="egghunter"></p>
 <p>注意其中的<code>_Function2</code>，跟进看一下：</p>
@@ -690,7 +702,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-21 15:44:40" itemprop="dateModified" datetime="2022-04-21T15:44:40Z">2022-04-21</time>
+                <time title="修改时间：2022-04-30 01:03:26" itemprop="dateModified" datetime="2022-04-30T01:03:26Z">2022-04-30</time>
               </span>
 
           
@@ -718,7 +730,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>本次实验讨论在<code>Win10 21h1 x86</code>系统下关闭<code>DEP</code>，利用<code>SEH+egghunter</code>完成。</p>
+          <p>本次实验讨论在<code>Win10 21h2 x86</code>系统下关闭<code>DEP</code>，利用<code>SEH+egghunter</code>完成。</p>
 <p><code>FUZZ、OFFSET</code>、坏字符确定可以参考之前分析的文章，这里直接进入<code>egghunter</code>技术的使用。</p>
 <p>首先，需要确定在<code>Win10 21h1 x86</code>系统下<code>egghunter</code>代码中的函数调用号，以<code>AccessCheckAndAuditAlarm</code>为例，<code>mona</code>生成的<code>egghunter payload</code>使用的是<code>AccessCheckAndAuditAlarm</code>函数。</p>
 <p>来看一下本机<code>AccessCheckAndAuditAlarm</code>的函数调用号：</p>
@@ -825,7 +837,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-04-20 11:18:20" itemprop="dateModified" datetime="2022-04-20T11:18:20Z">2022-04-20</time>
+                <time title="修改时间：2022-04-29 14:52:10" itemprop="dateModified" datetime="2022-04-29T14:52:10Z">2022-04-29</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -862,7 +874,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <p>本次实验讨论在<code>Win10 21h1 x86</code>系统下关闭<code>DEP</code>，利用<code>SEH</code>完成。</p>
+          <p>本次实验讨论在<code>Win10 21h2 x86</code>系统下关闭<code>DEP</code>，利用<code>SEH</code>完成。</p>
 <p>节省时间，<code>FUZZ</code>就不做了。直接改之前<code>TRUN</code>部分<code>FUZZ</code>代码即可。</p>
 <p>来看一下<code>vulnserver</code>崩溃时寄存器的情况。</p>
 <p><img src="/2022/04/19/Vulnserver-GMON-Exploit-with-SEH/01.png" alt="seh"></p>
