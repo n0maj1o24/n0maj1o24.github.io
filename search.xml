@@ -2407,6 +2407,8 @@
 <p>可以看到<code>VirtualAlloc</code>函数在导入表的地址为<code>4F0340D0</code>。需要注意的地方：<code>api-ms-win-core-memory-l1-1-0.DLL</code>库在程序运行的时候并没有加载，如果使用这个值，会出现类似如下这样的问题：</p>
 <p><img src="/2022/05/01/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10/12.png" alt="DEP"></p>
 <p>我的理解：查找<code>VirtualAlloc</code>或者<code>VirutalProtect</code>函数在<code>IAT</code>中的地址时，需要注意关联的<code>DLL</code>，如果该<code>DLL</code>在程序运行时加载了，那可以使用通过<code>IAT</code>中函数地址找到该函数，如果<code>DLL</code>在程序运行时没有加载，那么通过<code>IAT</code>中函数地址无法找到该函数运行时地址。</p>
+<p><strong>参考：</strong></p>
+<p>1.<a href="https://www.nirsoft.net/articles/windows_7_kernel_architecture_changes.html" target="_blank" rel="noopener">https://www.nirsoft.net/articles/windows_7_kernel_architecture_changes.html</a></p>
 ]]></content>
       <categories>
         <category>Windows Exploitation</category>
