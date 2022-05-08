@@ -20,15 +20,17 @@
     var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta property="og:type" content="website">
-<meta property="og:title" content="Technical Memorandum">
-<meta property="og:url" content="https://n0maj1o24.github.io/tags/ROP/index.html">
+  <meta property="og:type" content="article">
+<meta property="og:title" content="CloudMe v1.11.2 DEP bypass using ROP gadgets">
+<meta property="og:url" content="https://n0maj1o24.github.io/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/index.html">
 <meta property="og:site_name" content="Technical Memorandum">
 <meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-05-08T15:56:36.000Z">
+<meta property="article:modified_time" content="2022-05-08T07:56:37.220Z">
 <meta property="article:author" content="n0maj1o24">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://n0maj1o24.github.io/tags/ROP/">
+<link rel="canonical" href="https://n0maj1o24.github.io/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/">
 
 
 <script id="page-configurations">
@@ -36,12 +38,12 @@
   CONFIG.page = {
     sidebar: "",
     isHome : false,
-    isPost : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>标签: ROP | Technical Memorandum</title>
+  <title>CloudMe v1.11.2 DEP bypass using ROP gadgets | Technical Memorandum</title>
   
 
 
@@ -182,117 +184,121 @@
         <div class="content-wrap">
           
 
-          <div class="content tag">
+          <div class="content post posts-expand">
             
 
+    
   
   
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          CloudMe v1.11.2 DEP bypass using ROP gadgets
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-05-08 15:56:36 / 修改时间：07:56:37" itemprop="dateCreated datePublished" datetime="2022-05-08T15:56:36Z">2022-05-08</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
   
-  <div class="post-block">
-    <div class="posts-collapse">
-      <div class="collection-title">
-        <h2 class="collection-header">ROP
-          <small>标签</small>
-        </h2>
-      </div>
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
 
       
-    <div class="collection-year">
-      <span class="collection-header">2022</span>
+        
     </div>
 
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+    
+    
+    
+        
 
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2022-05-06T22:28:56Z"
-              content="2022-05-06">
-          05-06
-        </time>
-      </div>
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>n0maj1o24
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://n0maj1o24.github.io/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/" title="CloudMe v1.11.2 DEP bypass using ROP gadgets">https://n0maj1o24.github.io/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
 
-      <div class="post-title">
-          <a class="post-title-link" href="/2022/05/07/ASX-to-MP3-Converter-3-1-2-1-SEH-Exploit/" itemprop="url">
-            <span itemprop="name">ASX to MP3 Converter 3.1.2.1 DEP And ASLR Bypass Using ROP Gadgets</span>
-          </a>
-      </div>
 
-    </header>
-  </article>
+      <footer class="post-footer">
 
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
+        
 
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2022-05-01T08:47:00Z"
-              content="2022-05-01">
-          05-01
-        </time>
-      </div>
 
-      <div class="post-title">
-          <a class="post-title-link" href="/2022/05/01/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10/" itemprop="url">
-            <span itemprop="name">Vulnserver TRUN Bypass DEP With ROP On Win10</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2022-02-23T23:02:23Z"
-              content="2022-02-23">
-          02-23
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2022/02/24/Vulnserver-TRUN-Bypass-DEP-With-ROP-Again/" itemprop="url">
-            <span itemprop="name">Vulnserver TRUN Bypass DEP With ROP Again</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
-  <article itemscope itemtype="http://schema.org/Article">
-    <header class="post-header">
-
-      <div class="post-meta">
-        <time itemprop="dateCreated"
-              datetime="2022-02-21T21:15:53Z"
-              content="2022-02-21">
-          02-21
-        </time>
-      </div>
-
-      <div class="post-title">
-          <a class="post-title-link" href="/2022/02/22/Vulnserver-TRUN-Bypass-DEP-With-ROP/" itemprop="url">
-            <span itemprop="name">Vulnserver TRUN Bypass DEP With ROP</span>
-          </a>
-      </div>
-
-    </header>
-  </article>
-
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/05/07/ASX-to-MP3-Converter-3-1-2-1-SEH-Exploit/" rel="prev" title="ASX to MP3 Converter 3.1.2.1 DEP And ASLR Bypass Using ROP Gadgets">
+      <i class="fa fa-chevron-left"></i> ASX to MP3 Converter 3.1.2.1 DEP And ASLR Bypass Using ROP Gadgets
+    </a></div>
+      <div class="post-nav-item"></div>
     </div>
-  </div>
+      </footer>
+    
+  </article>
   
   
-  
-
   
 
 
 
           </div>
           
+    <div class="comments" id="valine-comments"></div>
 
 <script>
   window.addEventListener('tabs:register', () => {

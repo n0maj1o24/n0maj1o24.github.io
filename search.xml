@@ -2421,7 +2421,7 @@
       </tags>
   </entry>
   <entry>
-    <title>ASX to MP3 Converter 3.1.2.1 - SEH Exploit</title>
+    <title>ASX to MP3 Converter 3.1.2.1 DEP And ASLR Bypass Using ROP Gadgets</title>
     <url>/2022/05/07/ASX-to-MP3-Converter-3-1-2-1-SEH-Exploit/</url>
     <content><![CDATA[<p>测试环境：<code>Windows 10 21H2 32</code>位，开启全局<code>DEP</code>。这里来看如何绕过<code>DEP</code>和<code>ASLR</code>。</p>
 <p>没得说，肯定是先看需要多少字节能够<code>Crash</code>程序。简单的步骤就不说了，讲一下我遇到的一些小坑。</p>
@@ -2489,5 +2489,10 @@
         <tag>ROP</tag>
         <tag>ASLR</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>CloudMe v1.11.2 DEP bypass using ROP gadgets</title>
+    <url>/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/</url>
+    <content><![CDATA[]]></content>
   </entry>
 </search>
