@@ -1217,6 +1217,9 @@
 <p>1.<a href="https://www.corelan.be/index.php/2011/07/14/mona-py-the-manual/" target="_blank" rel="noopener">https://www.corelan.be/index.php/2011/07/14/mona-py-the-manual/</a></p>
 <p>2.<a href="https://www.corelan.be/index.php/2010/01/09/exploit-writing-tutorial-part-8-win32-egg-hunting/" target="_blank" rel="noopener">https://www.corelan.be/index.php/2010/01/09/exploit-writing-tutorial-part-8-win32-egg-hunting/</a></p>
 ]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
       <tags>
         <tag>Windows</tag>
         <tag>Stack Based Overflows</tag>
@@ -1608,6 +1611,9 @@
 <p><strong>参考：</strong></p>
 <p>1.<a href="https://captmeelo.com/exploitdev/2018/07/01/vulnserver-hter.html" target="_blank" rel="noopener">https://captmeelo.com/exploitdev/2018/07/01/vulnserver-hter.html</a></p>
 ]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
       <tags>
         <tag>Windows</tag>
         <tag>Stack Based Overflows</tag>
@@ -1741,6 +1747,9 @@
 <p>3.<a href="https://www.offensive-security.com/metasploit-unleashed/alphanumeric-shellcode/" target="_blank" rel="noopener">https://www.offensive-security.com/metasploit-unleashed/alphanumeric-shellcode/</a></p>
 <p>4.<a href="http://www.c-jump.com/CIS77/ASM/DataTypes/T77_0270_sext_example_movsx.htm" target="_blank" rel="noopener">http://www.c-jump.com/CIS77/ASM/DataTypes/T77_0270_sext_example_movsx.htm</a></p>
 ]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
       <tags>
         <tag>Windows</tag>
         <tag>Stack Based Overflows</tag>
@@ -2482,6 +2491,9 @@
 <p>成功反弹<code>shell</code>：</p>
 <p><img src="/2022/05/07/ASX-to-MP3-Converter-3-1-2-1-SEH-Exploit/12.png" alt="seh"></p>
 ]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
       <tags>
         <tag>Windows</tag>
         <tag>Stack Based Overflows</tag>
@@ -2523,6 +2535,9 @@
 <p><strong>参考：</strong></p>
 <p>1.<a href="https://xen0vas.github.io/cloudme-v1-11-2-dep-bypass-using-rop-gadgets/#" target="_blank" rel="noopener">https://xen0vas.github.io/cloudme-v1-11-2-dep-bypass-using-rop-gadgets/#</a></p>
 ]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
       <tags>
         <tag>Windows</tag>
         <tag>Stack Based Overflows</tag>
@@ -2554,6 +2569,9 @@
 <p>成功反弹<code>shell</code>：（因为涉及到内存的搜索，反弹<code>shell</code>需要等待一些时间）</p>
 <p><img src="/2022/05/10/CoolPlayer-Portable-2-19-6-m3u-File-Stack-Overflow-Egghunter-ASLR-Bypass/06.png" alt="bof"></p>
 ]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
       <tags>
         <tag>Windows</tag>
         <tag>Stack Based Overflows</tag>
@@ -2597,6 +2615,9 @@
 <p><img src="/2022/05/12/Audio-Converter-8-1-SEH-Stack-Buffer-Overflow-DEP-and-ASLR-bypass/10.png" alt="BOF"></p>
 <p>谷歌了一下，说是异常没有捕获到。这里就不进一步讨论了。</p>
 ]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
       <tags>
         <tag>Windows</tag>
         <tag>Stack Based Overflows</tag>
