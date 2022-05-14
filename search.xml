@@ -691,7 +691,7 @@
       </tags>
   </entry>
   <entry>
-    <title>OSWE Lab DocEdit Writeup</title>
+    <title>DocEdit Writeup</title>
     <url>/2021/06/25/OSWE-Lab-DocEdit-Writeup/</url>
     <content><![CDATA[<p>访问本lab时，页面如下：</p>
 <p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit0.png" alt="docedit0"></p>
@@ -1227,7 +1227,7 @@
       </tags>
   </entry>
   <entry>
-    <title>OSWE Lab Answers Writeup</title>
+    <title>Answers Writeup</title>
     <url>/2021/06/25/OSWE-Lab-Answers-Writeup/</url>
     <content><![CDATA[<p>本实验涉及到<strong>Postgresql Boolean Blind Injection</strong>，<strong>XSS</strong>，<strong>XXE</strong>。从<code>SQLi</code>到<code>RCE</code>的流程如下：</p>
 <ol>
@@ -2280,7 +2280,7 @@
       </tags>
   </entry>
   <entry>
-    <title>OSWE Lab Sqeakr Writeup</title>
+    <title>Sqeakr Writeup</title>
     <url>/2021/06/20/OSWE-Lab-Sqeakr-Writeup/</url>
     <content><![CDATA[<p>本实验涉及到三个漏洞：<strong>IDOR</strong>，<strong>LFI</strong>，<strong>Insecure Deserialization</strong>。</p>
 <p>打开<code>FireFox  Inspect Element</code>，访问<code>http://192.168.163.247/login</code>，如下所示：</p>
