@@ -3002,7 +3002,6 @@
 <p>继续来一遍之前的操作：</p>
 <p><img src="/2022/08/17/SeDebugPrivilege%E6%9C%AA%E8%AE%BE%E7%BD%AE%E5%AF%BC%E8%87%B4%E7%9A%84%E5%B0%8F%E9%97%AE%E9%A2%98/07.png" alt="Sed"></p>
 <p>可以发现，现在<code>SeDebugPrivilege</code>已经变为<code>Enabled</code>了。</p>
-<p><img src="/2022/08/17/SeDebugPrivilege%E6%9C%AA%E8%AE%BE%E7%BD%AE%E5%AF%BC%E8%87%B4%E7%9A%84%E5%B0%8F%E9%97%AE%E9%A2%98/07.png" alt="Sed"></p>
 <p>再次运行mimikatz，发现可以抓取密码了。</p>
 <p><img src="/2022/08/17/SeDebugPrivilege%E6%9C%AA%E8%AE%BE%E7%BD%AE%E5%AF%BC%E8%87%B4%E7%9A%84%E5%B0%8F%E9%97%AE%E9%A2%98/08.png" alt="Sed"></p>
 <p>SetSeDebugPrivilege.ps1源码如下：</p>
@@ -3018,11 +3017,12 @@
 <p>7.<a href="https://github.com/FuzzySecurity/PowerShell-Suite/blob/master/Conjure-LSASS.ps1" target="_blank" rel="noopener">https://github.com/FuzzySecurity/PowerShell-Suite/blob/master/Conjure-LSASS.ps1</a></p>
 ]]></content>
       <categories>
-        <category>RedTeam Related</category>
+        <category>Penetration Testing</category>
       </categories>
       <tags>
         <tag>Penetration</tag>
         <tag>Mimikatz</tag>
+        <tag>RedTeam</tag>
       </tags>
   </entry>
 </search>
