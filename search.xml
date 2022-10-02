@@ -3043,4 +3043,27 @@
         <tag>HTB</tag>
       </tags>
   </entry>
+  <entry>
+    <title>OSCE3 Certification: From Zero to One</title>
+    <url>/2022/10/03/OSCE3-Certification-From-Zero-to-One/</url>
+    <content><![CDATA[<p>花了一些时间，拿到了Offensive Security的4个证书。</p>
+<p><img src="/2022/10/03/OSCE3-Certification-From-Zero-to-One/OSCE3.png" alt="OSCE3"></p>
+<p> <img src="/2022/10/03/OSCE3-Certification-From-Zero-to-One/OSWE.png" alt="OSCE3"></p>
+<p><img src="/2022/10/03/OSCE3-Certification-From-Zero-to-One/OSCP.png" alt="OSCE3"></p>
+<p><img src="/2022/10/03/OSCE3-Certification-From-Zero-to-One/OSED.png" alt="OSCE3"></p>
+<p><img src="/2022/10/03/OSCE3-Certification-From-Zero-to-One/OSEP.png" alt="OSCE3"></p>
+<p>下面是我关于4个证书的备考总结，分享给大家：</p>
+<p><a href="https://n0maj1o24.notion.site/OSCE3-8cba8825129441aba5d0b7a78961f5bf" target="_blank" rel="noopener">https://n0maj1o24.notion.site/OSCE3-8cba8825129441aba5d0b7a78961f5bf</a></p>
+]]></content>
+      <categories>
+        <category>Penetration Testing</category>
+      </categories>
+      <tags>
+        <tag>OSWE</tag>
+        <tag>OSCE3</tag>
+        <tag>OSCP</tag>
+        <tag>OSED</tag>
+        <tag>OSEP</tag>
+      </tags>
+  </entry>
 </search>

@@ -188,6 +188,137 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2018/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2018/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/" class="post-title-link" itemprop="url">ubuntu 18.04安装TYPO3 9.3.0</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-11 16:57:01" itemprop="dateCreated datePublished" datetime="2018-06-11T16:57:01Z">2018-06-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-06-11 08:59:42" itemprop="dateModified" datetime="2021-06-11T08:59:42Z">2021-06-11</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Configuration/" itemprop="url" rel="index"><span itemprop="name">Configuration</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2018/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2018/06/12/ubuntu-18-04%E5%AE%89%E8%A3%85TYPO3-9-3-0/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h2 id="环境概况"><a href="#环境概况" class="headerlink" title="环境概况"></a>环境概况</h2><p>本实验环境采用的是Ubuntu 18.04，Apache版本为2.4.29，PHP版本为7.3.PHP版本为7.2的时候出现了未知错误，导致一直安装不成功，无奈切换成PHP7.3</p>
+<p>PHP7.3在Ubuntu 18.04上的安装步骤如下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo apt-get install software-properties-common</span><br><span class="line">sudo add-apt-repository ppa:ondrej/php</span><br><span class="line">sudo apt-get update</span><br><span class="line">sudo apt-get install php7.3 libapache2-mod-php7.3 php7.3-cli php7.3-mysql php7.3-gd php7.3-imagick php7.3-recode php7.3-tidy php7.3-xmlrpc php7.3-common php7.3-curl php7.3-mbstring php7.3-xml php7.3-bcmath php7.3-bz2 php7.3-intl php7.3-json php7.3-readline php7.3-zip</span><br></pre></td></tr></table></figure>
+
+<p>PHP7.3没有安装FPM，所以需要单独安装FPM</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install php7.3-fpm</span><br></pre></td></tr></table></figure>
+
+<p>因为我本地安装了PHP7.2和PHP7.3两个版本，为了让Apache采用PHP7.3来解析脚本，需要执行下列命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sudo a2dismod php7.2</span><br><span class="line">sudo a2enmod php7.3</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
+
+<p>多版本PHP的切换可以使用一下命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo update-alternatives --config php</span><br></pre></td></tr></table></figure>
+
+<p>根据提示进行选择即可。</p>
+<h2 id="TYPO3-9-3-0安装"><a href="#TYPO3-9-3-0安装" class="headerlink" title="TYPO3 9.3.0安装"></a>TYPO3 9.3.0安装</h2><p>将下载的TYPO3.CMS-9.3.0.tar.gz解压缩放到/var/www/htdocs/目录下，我这里解压缩之后的文件夹命名为typo3，进入typo3,执行<code>composer</code>安装所需的包。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo composer install --no-dev</span><br></pre></td></tr></table></figure>
+
+<p>修改Apache默认路径的执行权限：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chown -R www-data:www-data /var/www/htdocs/typo3/</span><br><span class="line">sudo chmod -R 755 /var/www/htdocs/typo3/</span><br></pre></td></tr></table></figure>
+
+<p>配置Apache：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo code /etc/apache2/sites-available/typo3.conf --user-data-dir</span><br></pre></td></tr></table></figure>
+
+<p>内容修改如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">VirtualHost</span> *<span class="attr">:80</span>&gt;</span></span><br><span class="line">ServerName typo3.example.com</span><br><span class="line">DocumentRoot /var/www/htdocs</span><br><span class="line"><span class="tag">&lt;<span class="name">Directory</span> /<span class="attr">var</span>/<span class="attr">www</span>/<span class="attr">htdocs</span>/<span class="attr">typo3</span>/&gt;</span></span><br><span class="line">Options +FollowSymlinks</span><br><span class="line">AllowOverride All</span><br><span class="line">Require all granted</span><br><span class="line"><span class="tag">&lt;/<span class="name">Directory</span>&gt;</span></span><br><span class="line">ErrorLog /var/log/apache2/typo3.example.com-error_log</span><br><span class="line">CustomLog /var/log/apache2/typo3.example.com-access_log common</span><br><span class="line"><span class="tag">&lt;/<span class="name">VirtualHost</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>继续执行如下命令，使得typo3.conf生效及加载必要的模块：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sudo a2dissite 000-default.conf</span><br><span class="line">sudo a2ensite typo3.conf</span><br><span class="line">sudo a2enmod rewrite</span><br><span class="line">sudo systemctl restart apache2</span><br></pre></td></tr></table></figure>
+
+<p>安装ImageMagick/GraphicsMagick，推荐ImageMagick：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo apt install imagemagick</span><br></pre></td></tr></table></figure>
+
+<p>TYPO3安装的时候，需要修改php.ini中的几个参数，到目录/etc/php/7.3/fpm/php.ini下修改即可。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">max_execution_time = 360</span><br><span class="line">max_input_vars = 1500</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置xdebug-ini"><a href="#配置xdebug-ini" class="headerlink" title="配置xdebug.ini"></a>配置xdebug.ini</h2><p>xdebug.ini文件路径为/etc/php/7.3/mods-available/xdebug.ini</p>
+<p>具体配置信息如下：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">zend_extension=xdebug.so</span><br><span class="line">xdebug.profiler_output_dir="/tmp/log"</span><br><span class="line">xdebug.trace_output_dir="/tmp/log"</span><br><span class="line">xdebug.remote_enable  = true</span><br><span class="line">xdebug.idekey = PHPSTORM</span><br><span class="line">xdebug.remote_host   = 127.0.0.1   </span><br><span class="line">xdebug.remote_port   = 9000  </span><br><span class="line">xdebug.profiler_enable  = on</span><br><span class="line">xdebug.auto_trace   = On</span><br><span class="line">xdebug.show_exception_trace = On</span><br><span class="line">xdebug.remote_autostart  = On</span><br><span class="line">xdebug.collect_vars   = On</span><br><span class="line">xdebug.collect_return  = On</span><br><span class="line">xdebug.remote_handler  =dbgp</span><br><span class="line">xdebug.max_nesting_level = 10000</span><br></pre></td></tr></table></figure>
+
+<p>执行如下命令，使得配置生效：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo systemctl restart php7.3-fpm</span><br><span class="line">sudo service apache2 restart</span><br></pre></td></tr></table></figure>
+
+<p>最后，访问typo3.example.com，根据提示进行TYPO3 9.3.0安装即可。</p>
+<p>参考文章<a href="https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/" target="_blank" rel="noopener">https://websiteforstudents.com/install-typo3-cms-using-composer-on-ubuntu-16-04-18-04-with-apache2-mariadb-and-php-7-2-support/</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2018/06/12/TYPO3-CORE-SA-2018-002-RCE%E5%88%86%E6%9E%90/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -681,7 +812,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">44</span>
+          <span class="site-state-item-count">45</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -694,7 +825,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">34</span>
+        <span class="site-state-item-count">38</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
