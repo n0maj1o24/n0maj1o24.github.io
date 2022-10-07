@@ -3066,23 +3066,4 @@
         <tag>OSEP</tag>
       </tags>
   </entry>
-  <entry>
-    <title>The Writeups of Challenges</title>
-    <url>/2022/10/07/The-Writeups-of-Challenges/</url>
-    <content><![CDATA[<p>提供给需要的朋友做一些参考。</p>
-<p>Lab1:<a href="https://n0maj1o24.notion.site/Challenge1-160e226d599e4fd9970b01163f7091bf" target="_blank" rel="noopener">https://n0maj1o24.notion.site/Challenge1-160e226d599e4fd9970b01163f7091bf</a></p>
-<p>Lab2:<a href="https://n0maj1o24.notion.site/Challenge2-0e5b40ce52c942aea435546ddae92536" target="_blank" rel="noopener">https://n0maj1o24.notion.site/Challenge2-0e5b40ce52c942aea435546ddae92536</a></p>
-<p>Lab3:<a href="https://n0maj1o24.notion.site/Challenge3-3e499eb934224a56b43a07cd5b7b70ad" target="_blank" rel="noopener">https://n0maj1o24.notion.site/Challenge3-3e499eb934224a56b43a07cd5b7b70ad</a></p>
-<p>Lab4:<a href="https://n0maj1o24.notion.site/Challenge4-7cde5f1dc0844237be4db94728a138fd" target="_blank" rel="noopener">https://n0maj1o24.notion.site/Challenge4-7cde5f1dc0844237be4db94728a138fd</a></p>
-<p>Lab5:<a href="https://n0maj1o24.notion.site/Challenge5-4c5f6975ed5e4e08b4c6d3deb4518701" target="_blank" rel="noopener">https://n0maj1o24.notion.site/Challenge5-4c5f6975ed5e4e08b4c6d3deb4518701</a></p>
-<p>Lab6:<a href="https://n0maj1o24.notion.site/Challenge6-0cf8a297fda645cbb5aa20c602b5adee" target="_blank" rel="noopener">https://n0maj1o24.notion.site/Challenge6-0cf8a297fda645cbb5aa20c602b5adee</a></p>
-<p>有些技法不一定是最优解，希望参考的朋友举一反三，采用更好的方法，也欢迎留言，交流学习。</p>
-]]></content>
-      <categories>
-        <category>Penetration Testing</category>
-      </categories>
-      <tags>
-        <tag>Penetration</tag>
-      </tags>
-  </entry>
 </search>
