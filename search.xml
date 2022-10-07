@@ -132,7 +132,7 @@
 <li>加载成功之后，调用<code>BwSvcFunction</code>：</li>
 </ul>
 <p><img src="/2022/05/28/Advantech-WebAccess-8-x-8-1-Multiple-Vulnerabilities/221.png" alt="BOF"></p>
-<p><strong>*BwOpcSvc!BwSvcFunction:</strong></p>
+<p><strong>BwOpcSvc!BwSvcFunction:</strong></p>
 <ul>
 <li><p>一堆分支</p>
 <p><img src="/2022/05/28/Advantech-WebAccess-8-x-8-1-Multiple-Vulnerabilities/241.png" alt="BOF"></p>
